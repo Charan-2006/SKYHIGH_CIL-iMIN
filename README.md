@@ -279,46 +279,6 @@ flowchart TB
 
 ---
 
-## 📸 Screenshots
-
-> Add screenshots to `docs/screenshots/` and replace placeholders below.
-
-<table>
-<tr>
-<td align="center" width="50%">
-<strong>📊 Executive Dashboard</strong><br /><br />
-<img src="https://via.placeholder.com/640x360/F4F6F9/0369A1?text=Dashboard+Preview" alt="Dashboard Screenshot Placeholder" width="100%" />
-<br /><em>KPI overview · mine performance · quality alerts</em>
-</td>
-<td align="center" width="50%">
-<strong>🤖 Quality Prediction</strong><br /><br />
-<img src="https://via.placeholder.com/640x360/F4F6F9/059669?text=Prediction+Preview" alt="Prediction Screenshot Placeholder" width="100%" />
-<br /><em>Multi-parameter forecasts · SHAP explanations</em>
-</td>
-</tr>
-<tr>
-<td align="center" width="50%">
-<strong>🔀 Blend Optimization</strong><br /><br />
-<img src="https://via.placeholder.com/640x360/F4F6F9/7C3AED?text=Optimization+Preview" alt="Optimization Screenshot Placeholder" width="100%" />
-<br /><em>Constraint solver · blend composition charts</em>
-</td>
-<td align="center" width="50%">
-<strong>📄 Reports</strong><br /><br />
-<img src="https://via.placeholder.com/640x360/F4F6F9/D97706?text=Reports+Preview" alt="Reports Screenshot Placeholder" width="100%" />
-<br /><em>Automated exports · compliance summaries</em>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="2">
-<strong>🎛️ Scenario Simulator</strong><br /><br />
-<img src="https://via.placeholder.com/960x360/F4F6F9/DC2626?text=Scenario+Simulator+Preview" alt="Scenario Simulator Screenshot Placeholder" width="80%" />
-<br /><em>What-if analysis · demand and quality stress testing</em>
-</td>
-</tr>
-</table>
-
----
-
 ## 📁 Folder Structure
 
 <details>
@@ -409,8 +369,7 @@ carboncortex/
 │   ├── postgres/
 │   └── redis/
 ├── docs/
-│   ├── architecture/
-│   └── screenshots/
+│   └── architecture/
 └── README.md
 ```
 
@@ -615,37 +574,25 @@ Native SAP, Oracle, and SCADA connectors for seamless operational data flow.
 
 ## 👥 Team
 
+**Team Lead**
+
 <table>
 <tr>
-<td align="center" width="33%">
-<img src="https://github.com/Charan-2006.png" width="100" style="border-radius:50%" alt="Charan Annamalai A" />
+<td align="center">
+<img src="https://github.com/Charan-2006.png" width="100" style="border-radius:50%" alt="Charan Annamalai" />
 <br /><br />
-<strong>Charan Annamalai A</strong>
-<br />
-<em>Project Lead · Full Stack Developer</em>
+<strong>Charan Annamalai</strong>
 <br /><br />
 <a href="https://github.com/Charan-2006">GitHub</a>
 </td>
-<td align="center" width="33%">
-<img src="https://via.placeholder.com/100/E2E8F0/64748B?text=SKYHIGH" width="100" style="border-radius:50%" alt="Team Member" />
-<br /><br />
-<strong>SKYHIGH Team</strong>
-<br />
-<em>AI / ML Engineering</em>
-<br /><br />
-<em>Hackathon 2026</em>
-</td>
-<td align="center" width="33%">
-<img src="https://via.placeholder.com/100/E2E8F0/64748B?text=SKYHIGH" width="100" style="border-radius:50%" alt="Team Member" />
-<br /><br />
-<strong>SKYHIGH Team</strong>
-<br />
-<em>Domain & Operations Research</em>
-<br /><br />
-<em>Hackathon 2026</em>
-</td>
 </tr>
 </table>
+
+**Team Members**
+
+- Magesh K
+- Sivaprian M
+- Vijaysaran S
 
 ---
 
