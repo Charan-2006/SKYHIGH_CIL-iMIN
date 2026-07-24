@@ -1,0 +1,126 @@
+@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+/* Leaflet map styles */
+
+/* Google Fonts: Outfit for premium modern display and content */
+
+@theme {
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Metallic Gold Palette */
+  --color-gold-50: #FAF8F2;
+  --color-gold-100: #F4EEDC;
+  --color-gold-200: #E9DBB9;
+  --color-gold-300: #DCC58F;
+  --color-gold-400: #CFA75C;
+  --color-gold-500: #C9A227; /* Institutional metallic gold */
+  --color-gold-600: #D4AF37; /* Cortex gold hover */
+  --color-gold-700: #B28F20;
+  --color-gold-800: #8C6F19;
+  --color-gold-900: #665012;
+  
+  --color-brand-primary: #C9A227;
+  --color-brand-hover: #D4AF37;
+  
+  /* System colors */
+  --color-cortex-dark: #111111;
+  --color-cortex-gray: #4B5563;
+  --color-cortex-light-gray: #9CA3AF;
+  --color-cortex-border: #E5E7EB;
+  --color-cortex-bg: #FFFFFF;
+  --color-cortex-bg-secondary: #FAFAFA;
+  
+  /* Override default transitions and shapes */
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-cortex-bg-secondary);
+    color: var(--color-cortex-dark);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Scrollbar for premium feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-cortex-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E5E7EB;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D1D5DB;
+}
+
+/* Premium shadows */
+.shadow-premium {
+  box-shadow: 0 4px 20px -2px rgba(17, 17, 17, 0.03), 0 2px 8px -1px rgba(17, 17, 17, 0.02);
+}
+
+.shadow-premium-lg {
+  box-shadow: 0 10px 30px -5px rgba(17, 17, 17, 0.04), 0 4px 12px -2px rgba(17, 17, 17, 0.03);
+}
+
+.shadow-premium-xl {
+  box-shadow: 0 20px 40px -10px rgba(17, 17, 17, 0.06), 0 8px 16px -4px rgba(17, 17, 17, 0.04);
+}
+
+.shadow-premium-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shadow-premium-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px -5px rgba(201, 162, 39, 0.08), 0 4px 12px -2px rgba(17, 17, 17, 0.03);
+}
+
+/* Custom leaflet map adjustments */
+.leaflet-container {
+  font-family: var(--font-sans) !important;
+  border-radius: 12px;
+  border: 1px solid var(--color-cortex-border);
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: var(--color-cortex-bg) !important;
+  color: var(--color-cortex-dark) !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--color-cortex-border) !important;
+  box-shadow: 0 10px 30px -5px rgba(17, 17, 17, 0.05) !important;
+}
+
+.leaflet-popup-tip {
+  background-color: var(--color-cortex-bg) !important;
+}
+
+.leaflet-bar {
+  border: 1px solid var(--color-cortex-border) !important;
+  box-shadow: none !important;
+}
+
+.leaflet-bar a {
+  background-color: var(--color-cortex-bg) !important;
+  color: var(--color-cortex-dark) !important;
+  border-bottom: 1px solid var(--color-cortex-border) !important;
+}
+
+.leaflet-bar a:hover {
+  background-color: var(--color-cortex-bg-secondary) !important;
+}
