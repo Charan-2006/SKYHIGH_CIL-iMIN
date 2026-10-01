@@ -175,3 +175,22 @@ pytest tests/ -v
 - [Frontend Architecture](docs/frontend.md)
 - [Deployment Guide](docs/deployment.md)
 - [End-to-End Walkthrough](docs/demo.md)
+
+---
+
+## 9. Team & Credits
+
+**Team Lead**
+- **Charan Annamalai** ([@Charan-2006](https://github.com/Charan-2006))
+
+**Team Members**
+- Magesh K
+- Sivaprian M
+- Vijaysaran S
+
+---
+
+## 10. License
+
+This project is licensed under the **MIT License**.
+
