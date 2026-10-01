@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
-import { apiService } from '../services/api';
+import { predictionApi } from '../api/predictions';
 import type { ConfidenceMetric, ConfidenceLog } from '../types';
 import Card from '../components/Card';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
@@ -16,8 +16,10 @@ export const Confidence: React.FC = () => {
   useEffect(() => {
     const fetchConfidenceData = async () => {
       try {
-        const m = await apiService.getConfidenceMetrics();
-        const l = await apiService.getConfidenceLogs();
+        const [m, l] = await Promise.all([
+          predictionApi.getConfidenceMetrics(),
+          predictionApi.getConfidenceLogs()
+        ]);
         setMetrics(m);
         setLogs(l);
       } catch (err) {
@@ -38,7 +40,9 @@ export const Confidence: React.FC = () => {
     }
   };
 
-  const currentConfidence = lastPrediction ? lastPrediction.confidence : 98.2;
+  const currentConfidence = lastPrediction 
+    ? Math.round(lastPrediction.confidence > 1 ? lastPrediction.confidence : lastPrediction.confidence * 100) 
+    : (metrics?.veracityScore || 96.4);
 
   return (
     <div className="text-left select-none flex flex-col gap-6">

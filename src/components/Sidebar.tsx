@@ -11,21 +11,29 @@ import {
   Map, 
   History, 
   FileSpreadsheet,
-  Database
+  Sliders,
+  Cpu,
+  Layers,
+  User,
+  FlaskConical
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutGrid },
-    { name: 'Laboratory Input', path: '/laboratory', icon: Database },
+    { name: 'Coal Quality AI', path: '/prediction', icon: BrainCircuit },
+    { name: 'Lab & Verification', path: '/laboratory', icon: FlaskConical },
+    { name: 'Blend Optimizer', path: '/blend', icon: Sliders },
+    { name: 'Scenario Simulator', path: '/scenarios', icon: Layers },
+    { name: 'Model Governance', path: '/models', icon: Cpu },
     { name: 'Mine Analytics', path: '/analytics', icon: LineChart },
-    { name: 'AI Insights', path: '/prediction', icon: BrainCircuit },
     { name: 'India Mine Map', path: '/map', icon: Map },
     { name: 'Prediction History', path: '/history', icon: History },
-    { name: 'Executive Report', path: '/report', icon: FileSpreadsheet }
+    { name: 'Executive Reports', path: '/report', icon: FileSpreadsheet }
   ];
 
   const secondaryItems = [
+    { name: 'My Profile', path: '/profile', icon: User },
     { name: 'Settings', path: '/settings', icon: Settings },
     { name: 'Support', path: '#', icon: HelpCircle }
   ];

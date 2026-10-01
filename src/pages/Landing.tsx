@@ -72,11 +72,12 @@ export const Landing: React.FC = () => {
   const technologies = [
     { name: 'React', desc: 'Modern reactive frontend context', category: 'Frontend' },
     { name: 'FastAPI', desc: 'High-performance Python backend', category: 'Backend' },
-    { name: 'XGBoost', desc: 'Supervised gradient boosted trees', category: 'ML Engine' },
-    { name: 'SHAP', desc: 'Neural narrative local explanations', category: 'Explainability' },
-    { name: 'PostgreSQL', desc: 'Robust relational database ledger', category: 'Database' },
+    { name: 'XGBoost', desc: 'Supervised gradient boosted trees for GCV & Ash', category: 'ML Engine' },
+    { name: 'SHAP', desc: 'TreeExplainer local feature attributions', category: 'Explainability' },
+    { name: 'Google OR-Tools', desc: 'GLOP linear solver for optimal coal blends', category: 'Optimization' },
+    { name: 'MongoDB', desc: 'Primary document database for telemetry, predictions & audits', category: 'Database' },
     { name: 'Leaflet', desc: 'Geospatial mapping layer', category: 'GIS Telemetry' },
-    { name: 'Recharts', desc: 'Premium SVG analytics charting', category: 'Visualization' },
+    { name: 'Recharts', desc: 'High-precision SVG analytics charting', category: 'Visualization' },
     { name: 'Docker', desc: 'Standardized microservices container', category: 'DevOps' }
   ];
 
@@ -152,12 +153,18 @@ export const Landing: React.FC = () => {
             <span className="text-lg font-bold tracking-tight text-white">CarbonCortex</span>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
             <a href="#features" className="text-xs font-semibold text-white/70 hover:text-white transition-colors">Features</a>
             <a href="#how-it-works" className="text-xs font-semibold text-white/70 hover:text-white transition-colors">Workflow</a>
             <a href="#technology" className="text-xs font-semibold text-white/70 hover:text-white transition-colors">Technology</a>
+            <button 
+              onClick={() => navigate('/login')}
+              className="text-xs font-bold text-gold-400 hover:text-gold-300 transition-colors px-3 py-1.5 rounded-lg border border-gold-500/30 bg-gold-500/10 cursor-pointer"
+            >
+              Sign In
+            </button>
             <Button onClick={handleLaunch} size="sm" className="font-bold border border-gold-500/30 bg-gold-600 hover:bg-gold-700 text-white cursor-pointer transition-all">
-              Launch CarbonCortex
+              Launch Platform
             </Button>
           </div>
         </header>
@@ -204,16 +211,16 @@ export const Landing: React.FC = () => {
                 onClick={handleLaunch}
                 className="px-8 py-4 bg-gold-600 hover:bg-gold-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2.5 group cursor-pointer hover:shadow-gold-500/10"
               >
-                <span>Launch CarbonCortex</span>
+                <span>Launch Platform</span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>
               
-              <a 
-                href="#features"
-                className="px-8 py-4 bg-white/5 border border-white/10 hover:border-gold-500/40 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer backdrop-blur-sm"
+              <button 
+                onClick={() => navigate('/login')}
+                className="px-6 py-4 bg-white/5 border border-white/10 hover:border-gold-500/40 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer backdrop-blur-sm"
               >
-                Learn More
-              </a>
+                Enterprise Sign In
+              </button>
             </motion.div>
           </div>
 

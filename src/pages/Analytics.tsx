@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { apiService } from '../services/api';
+import { dashboardApi } from '../api/dashboard';
 import type { MineAnalyticsData } from '../types';
 import Card from '../components/Card';
 import { 
@@ -26,8 +26,13 @@ export const Analytics: React.FC = () => {
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      const data = await apiService.getAnalytics();
-      setAnalyticsData(data);
+      const data = await dashboardApi.getTrends();
+      setAnalyticsData({
+        monthlyTrends: data.monthly_trends,
+        accuracyDistribution: data.accuracy_distribution,
+        gradeDistribution: data.grade_distribution,
+        mineComparison: data.mine_comparison
+      });
     } catch (err) {
       console.error('Error fetching analytics:', err);
     } finally {

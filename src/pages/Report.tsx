@@ -1,57 +1,120 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
+import { reportApi, type ReportData } from '../api/reports';
 import Card from '../components/Card';
 import Button from '../components/Button';
-import { FileText, Printer, ArrowLeft, BadgeCheck } from 'lucide-react';
+import Table from '../components/Table';
+import { 
+  FileText, 
+  Printer, 
+  ArrowLeft, 
+  BadgeCheck, 
+  Layers, 
+  Database, 
+  Cpu, 
+  Sliders, 
+  FlaskConical,
+  RefreshCw
+} from 'lucide-react';
+
+const REPORT_TYPES = [
+  { id: 'consignment', name: 'Active Consignment Valuation', icon: BadgeCheck },
+  { id: 'coal_quality', name: 'Coal Quality Inventory', icon: Database },
+  { id: 'predictions', name: 'Prediction Telemetry Audit', icon: FileText },
+  { id: 'laboratory', name: 'Lab Verification Ledger', icon: FlaskConical },
+  { id: 'blending', name: 'OR-Tools Blend Runs', icon: Sliders },
+  { id: 'models', name: 'Model Performance & Retraining', icon: Cpu },
+  { id: 'scenarios', name: 'Scenario Simulation Runs', icon: Layers }
+];
 
 export const Report: React.FC = () => {
   const navigate = useNavigate();
   const { lastPrediction, currentSample } = useApp();
   const reportRef = useRef<HTMLDivElement>(null);
 
-  if (!lastPrediction) {
-    return (
-      <div className="text-left py-12 max-w-lg mx-auto">
-        <Card title="Report Empty" className="text-center flex flex-col items-center">
-          <FileText className="w-12 h-12 text-gold-500 mb-4 animate-pulse" />
-          <p className="text-xs text-cortex-gray mb-6">
-            No valuation report has been compiled yet. Please analyze a laboratory sample.
-          </p>
-          <Button onClick={() => navigate('/laboratory')}>Go to Laboratory Input</Button>
-        </Card>
-      </div>
-    );
-  }
+  const [activeReportTab, setActiveReportTab] = useState<string>('consignment');
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [loadingReport, setLoadingReport] = useState<boolean>(false);
+
+  const fetchEnterpriseReport = async (type: string) => {
+    if (type === 'consignment') return;
+    setLoadingReport(true);
+    try {
+      const data = await reportApi.getReportByType(type);
+      setReportData(data);
+    } catch (err) {
+      console.error('Error fetching enterprise report:', err);
+    } finally {
+      setLoadingReport(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeReportTab !== 'consignment') {
+      fetchEnterpriseReport(activeReportTab);
+    }
+  }, [activeReportTab]);
 
   const handlePrint = () => {
     window.print();
   };
 
-  // Determine Dispatch Recommendations based on GCV
+  // Dispatch rules for active consignment
+  const predGcv = Math.round(lastPrediction?.predictions?.gcv ?? (lastPrediction as any)?.predictedGcv ?? 5200);
+  const predAsh = Number((lastPrediction?.predictions?.ash ?? currentSample?.ash ?? 24.5).toFixed(1));
+  const predMoisture = Number((lastPrediction?.predictions?.moisture ?? currentSample?.moisture ?? 7.5).toFixed(1));
+  const predVm = Number((lastPrediction?.predictions?.volatile_matter ?? currentSample?.volatileMatter ?? 25.0).toFixed(1));
+  const predFc = Number((lastPrediction?.predictions?.fixed_carbon ?? currentSample?.fixedCarbon ?? 43.0).toFixed(1));
+  const predGrade = lastPrediction?.grade ?? (lastPrediction as any)?.coalGrade ?? 'G4';
+  const predConfidence = Math.round(lastPrediction ? (lastPrediction.confidence > 1 ? lastPrediction.confidence : lastPrediction.confidence * 100) : 95);
+  const sampleCode = lastPrediction?.sample_code || (lastPrediction as any)?.sampleId || 'SAMPLE-001';
+  const mineName = lastPrediction?.mine_name || currentSample?.mineName || 'Gevra Mega Project';
+  const coalfield = lastPrediction?.coalfield || currentSample?.coalfield || 'Korba';
+  const stateName = lastPrediction?.state || currentSample?.state || 'Chhattisgarh';
+
   const getDispatchRecommendation = (gcv: number) => {
-    if (gcv > 6000) {
+    if (gcv > 5800) {
       return {
         use: 'Metallurgical Coking & Steel Blending',
-        instructions: 'Direct high-carbon consignment to active steel manufacturing plants in Bokaro and Jamshedpur. Premium value surcharge applied.',
+        instructions: 'Direct high-carbon consignment to active steel manufacturing complexes in Bokaro and Jamshedpur. Premium billing surcharge applies.',
         priority: 'CRITICAL HIGH'
       };
-    } else if (gcv > 4800) {
+    } else if (gcv > 4400) {
       return {
-        use: 'Supercritical Thermal Utility Blends',
-        instructions: 'Authorize transit to National Thermal Power Corporation (NTPC) grids. Suitable for high-temperature superheated boiler streams.',
+        use: 'Supercritical Thermal Utility Grids',
+        instructions: 'Authorize transit to National Thermal Power Corporation (NTPC) power plants. Optimized for high-efficiency pulverized boilers.',
         priority: 'OPTIMAL THERMAL'
       };
     } else {
       return {
         use: 'Industrial Cement Kilns & Domestic Grids',
-        instructions: 'Allocate to localized pulverized heating grids and brick/cement manufacturing complexes. Low moisture transport precautions.',
+        instructions: 'Allocate to localized pulverized heating grids and cement manufacturing kilns. Normal moisture transport precautions.',
         priority: 'STANDARD UTILITY'
       };
     }
   };
 
-  const dispatch = getDispatchRecommendation(lastPrediction.predictedGcv);
+  const dispatch = getDispatchRecommendation(predGcv);
+
+  // Dynamic table columns for generic enterprise reports
+  const getDynamicColumns = () => {
+    if (!reportData || !reportData.data || reportData.data.length === 0) return [];
+    const sample = reportData.data[0];
+    return Object.keys(sample)
+      .filter(k => k !== '_id' && k !== 'id')
+      .slice(0, 7)
+      .map(key => ({
+        header: key.replace(/_/g, ' ').toUpperCase(),
+        accessor: (row: any) => {
+          const val = row[key];
+          if (val === null || val === undefined) return '---';
+          if (typeof val === 'object') return JSON.stringify(val);
+          if (typeof val === 'number') return val.toLocaleString();
+          return String(val);
+        }
+      }));
+  };
 
   return (
     <div className="text-left select-none flex flex-col gap-6">
@@ -64,10 +127,10 @@ export const Report: React.FC = () => {
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back to Prediction Outcome
           </button>
-          <h1 className="text-2xl font-bold text-cortex-dark">Executive Summary Report</h1>
+          <h1 className="text-2xl font-bold text-cortex-dark">Enterprise Compliance & Valuation Reports</h1>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
           <Button 
             variant="outline" 
             size="sm" 
@@ -75,150 +138,234 @@ export const Report: React.FC = () => {
             className="flex items-center gap-1.5 font-bold cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>Print / Save PDF</span>
+            <span>Print Report (PDF)</span>
           </Button>
         </div>
       </div>
 
-      {/* Main Report sheet wrapper - formatted as high-grade paper page */}
-      <div 
-        ref={reportRef}
-        className="bg-white border border-cortex-border rounded-2xl p-8 max-w-4xl mx-auto w-full shadow-premium flex flex-col gap-6 print:border-none print:shadow-none print:p-0"
-      >
-        {/* Letterhead Logo Header */}
-        <div className="flex justify-between items-start border-b-2 border-gold-500/30 pb-5">
-          <div className="flex flex-col">
-            <span className="text-lg font-bold text-gold-900 tracking-tight leading-none uppercase">CarbonCortex</span>
-            <span className="text-[9px] text-cortex-gray font-semibold mt-1 tracking-widest">COAL INDIA DECISION INTEL PLATFORM</span>
-            <span className="text-[8px] text-cortex-gray/65 font-mono mt-0.5">COMPLIANCE REPORT: SECURE-v4.2</span>
-          </div>
-          
-          <div className="text-right text-[10px] text-cortex-gray flex flex-col gap-0.5">
-            <span className="font-bold text-cortex-dark">DATE OF ISSUANCE:</span>
-            <span className="font-mono">{lastPrediction.predictionTime}</span>
-            <span className="font-bold text-cortex-dark mt-1">REPORT ID:</span>
-            <span className="font-mono">CCR-{lastPrediction.sampleId}</span>
-          </div>
-        </div>
-
-        {/* Overview Box */}
-        <div>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-gold-800 mb-3 border-b border-cortex-border/50 pb-1.5">
-            1. Core Analysis Summary
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-cortex-bg-secondary/40 border border-cortex-border/80 p-4 rounded-xl">
-            <div>
-              <span className="text-[9px] uppercase font-bold text-cortex-gray tracking-wider">Predicted GCV</span>
-              <p className="text-xl font-bold font-mono text-gold-800 mt-1">{lastPrediction.predictedGcv} kcal/kg</p>
-            </div>
-            <div>
-              <span className="text-[9px] uppercase font-bold text-cortex-gray tracking-wider">CIL Coal Grade</span>
-              <p className="text-xl font-bold text-cortex-dark mt-1">{lastPrediction.coalGrade}</p>
-            </div>
-            <div>
-              <span className="text-[9px] uppercase font-bold text-cortex-gray tracking-wider">Inference Confidence</span>
-              <p className="text-xl font-bold font-mono text-cortex-dark mt-1">{lastPrediction.confidence}%</p>
-            </div>
-            <div>
-              <span className="text-[9px] uppercase font-bold text-cortex-gray tracking-wider">Veracity Check</span>
-              <p className="text-xl font-bold text-green-600 mt-1">PASS</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Mine and Sample Telemetry */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-2">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gold-800 mb-3 border-b border-cortex-border/50 pb-1.5">
-              2. Source Demographics
-            </h3>
-            <div className="flex flex-col gap-2.5 text-xs">
-              <div className="flex justify-between border-b border-cortex-border/40 pb-1.5">
-                <span className="text-cortex-gray font-semibold">Subsidiary Provider</span>
-                <span className="font-bold">{currentSample?.state} (CIL)</span>
-              </div>
-              <div className="flex justify-between border-b border-cortex-border/40 pb-1.5">
-                <span className="text-cortex-gray font-semibold">Active Basin Mine</span>
-                <span className="font-bold">{currentSample?.mineName}</span>
-              </div>
-              <div className="flex justify-between border-b border-cortex-border/40 pb-1.5">
-                <span className="text-cortex-gray font-semibold">Basin field location</span>
-                <span className="font-bold">{currentSample?.coalfield} field</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-cortex-gray font-semibold">Inference Latency</span>
-                <span className="font-bold font-mono">{lastPrediction.analysisDurationMs} ms</span>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gold-800 mb-3 border-b border-cortex-border/50 pb-1.5">
-              3. Proximate Parameters
-            </h3>
-            <div className="flex flex-col gap-2.5 text-xs">
-              <div className="flex justify-between border-b border-cortex-border/40 pb-1.5">
-                <span className="text-cortex-gray font-semibold">Moisture (M)</span>
-                <span className="font-bold font-mono">{currentSample?.moisture}%</span>
-              </div>
-              <div className="flex justify-between border-b border-cortex-border/40 pb-1.5">
-                <span className="text-cortex-gray font-semibold">Ash Content (A)</span>
-                <span className="font-bold font-mono">{currentSample?.ash}%</span>
-              </div>
-              <div className="flex justify-between border-b border-cortex-border/40 pb-1.5">
-                <span className="text-cortex-gray font-semibold">Volatile Matter (VM)</span>
-                <span className="font-bold font-mono">{currentSample?.volatileMatter}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-cortex-gray font-semibold">Fixed Carbon (FC)</span>
-                <span className="font-bold font-mono">{currentSample?.fixedCarbon}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Dispatch recommendation */}
-        <div className="border border-gold-200/50 bg-gold-50/20 p-5 rounded-xl flex flex-col gap-2.5 mt-2">
-          <div className="flex items-center gap-2 border-b border-gold-200/30 pb-2 mb-1">
-            <BadgeCheck className="w-5 h-5 text-gold-650" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gold-800">
-              4. Automated Dispatch Recommendation
-            </h3>
-          </div>
-
-          <div className="text-xs text-cortex-dark">
-            <div className="flex justify-between mb-2">
-              <span className="text-cortex-gray font-semibold">Allocated Target Use:</span>
-              <span className="font-extrabold text-gold-900 uppercase tracking-wide">{dispatch.use}</span>
-            </div>
-            <div className="flex justify-between mb-3">
-              <span className="text-cortex-gray font-semibold">Inference Priority Class:</span>
-              <span className="font-bold text-cortex-dark font-mono">{dispatch.priority}</span>
-            </div>
-            <div className="text-left border-t border-gold-250/20 pt-2.5 text-cortex-gray leading-relaxed font-semibold">
-              <span className="text-[10px] font-bold text-gold-800 uppercase block mb-1">Operational Instructions:</span>
-              {dispatch.instructions}
-            </div>
-          </div>
-        </div>
-
-        {/* Certification Signoff layout */}
-        <div className="grid grid-cols-2 gap-8 border-t border-cortex-border pt-10 mt-12 text-xs">
-          <div className="flex flex-col items-start gap-1">
-            <div className="w-32 h-6 border-b border-cortex-light-gray flex items-end">
-              <span className="font-mono text-[9px] text-cortex-gray italic">Cortex Neural Link Signed</span>
-            </div>
-            <span className="font-bold text-cortex-dark">CarbonCortex Predictive Core</span>
-            <span className="text-[10px] text-cortex-gray">Automated Cryptographic Certification</span>
-          </div>
-
-          <div className="flex flex-col items-end gap-1 text-right">
-            <div className="w-32 h-6 border-b border-cortex-light-gray"></div>
-            <span className="font-bold text-cortex-dark">Quality Assurance Supervisor</span>
-            <span className="text-[10px] text-cortex-gray">Coal India Inspectorate Signoff</span>
-          </div>
-        </div>
+      {/* Report Selector Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-cortex-border print:hidden">
+        {REPORT_TYPES.map((rep) => {
+          const Icon = rep.icon;
+          const isActive = activeReportTab === rep.id;
+          return (
+            <button
+              key={rep.id}
+              onClick={() => setActiveReportTab(rep.id)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                isActive 
+                  ? 'bg-gold-800 text-white shadow-sm' 
+                  : 'bg-white border border-cortex-border text-cortex-gray hover:text-cortex-dark hover:bg-gold-50/20'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{rep.name}</span>
+            </button>
+          );
+        })}
       </div>
+
+      {/* View 1: Active Consignment Certificate */}
+      {activeReportTab === 'consignment' && (
+        !lastPrediction ? (
+          <div className="text-left py-12 max-w-lg mx-auto">
+            <Card title="No Active Consignment" className="text-center flex flex-col items-center">
+              <FileText className="w-12 h-12 text-gold-500 mb-4 animate-pulse" />
+              <p className="text-xs text-cortex-gray mb-6">
+                No active consignment prediction loaded. Please evaluate a laboratory sample to generate an executive certificate.
+              </p>
+              <Button onClick={() => navigate('/laboratory')}>Go to Laboratory Input</Button>
+            </Card>
+          </div>
+        ) : (
+          <div 
+            ref={reportRef}
+            className="bg-white border border-cortex-border rounded-2xl p-8 max-w-4xl mx-auto w-full shadow-premium flex flex-col gap-6 print:border-none print:shadow-none print:p-0"
+          >
+            {/* Letterhead Logo Header */}
+            <div className="flex justify-between items-start border-b-2 border-gold-500/30 pb-5">
+              <div className="flex flex-col">
+                <span className="text-2xl font-bold text-gold-900 tracking-tight leading-none uppercase">CarbonCortex</span>
+                <span className="text-[10px] text-cortex-gray font-semibold mt-1 tracking-widest">COAL QUALITY & DECISION INTELLIGENCE PLATFORM</span>
+                <span className="text-[8px] text-cortex-gray/65 font-mono mt-0.5">COMPLIANCE LEDGER: CIL-ISO-1928-CERTIFIED</span>
+              </div>
+              
+              <div className="text-right text-[10px] text-cortex-gray flex flex-col gap-0.5">
+                <span className="font-bold text-cortex-dark">DATE OF ISSUANCE:</span>
+                <span className="font-mono">{new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                <span className="font-bold text-cortex-dark mt-1">REPORT CODE:</span>
+                <span className="font-mono text-gold-800 font-bold">CCR-{sampleCode}</span>
+              </div>
+            </div>
+
+            {/* Consignment Overview Banner */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 bg-cortex-bg-secondary/40 border border-cortex-border rounded-xl">
+              <div>
+                <span className="text-[9px] font-bold text-cortex-gray uppercase">Coal Mine</span>
+                <p className="text-sm font-bold text-cortex-dark mt-0.5">{mineName}</p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-cortex-gray uppercase">Basin / Coalfield</span>
+                <p className="text-sm font-bold text-cortex-dark mt-0.5">{coalfield}</p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-cortex-gray uppercase">State Territory</span>
+                <p className="text-sm font-bold text-cortex-dark mt-0.5">{stateName}</p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-cortex-gray uppercase">Sample Telemetry ID</span>
+                <p className="text-sm font-bold font-mono text-gold-800 mt-0.5">{sampleCode}</p>
+              </div>
+            </div>
+
+            {/* Certified Valuation Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="p-5 border border-cortex-border rounded-xl bg-white shadow-sm">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-cortex-gray">Gross Calorific Value</span>
+                <p className="text-3xl font-extrabold font-mono text-cortex-dark mt-2">
+                  {predGcv} <span className="text-xs font-normal text-cortex-gray font-sans">kcal/kg</span>
+                </p>
+                <span className="text-[10px] text-cortex-gray mt-1 block">XGBoost Multi-Target Regression</span>
+              </div>
+
+              <div className="p-5 border border-cortex-border rounded-xl bg-white shadow-sm">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-cortex-gray">Determined Coal Grade</span>
+                <p className="text-3xl font-extrabold font-mono text-gold-800 mt-2">
+                  {predGrade}
+                </p>
+                <span className="text-[10px] text-cortex-gray mt-1 block">Official CIL Thermal G1-G17 Schedule</span>
+              </div>
+
+              <div className="p-5 border border-cortex-border rounded-xl bg-white shadow-sm">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-cortex-gray">ATDIF Confidence</span>
+                <p className={`text-3xl font-extrabold font-mono mt-2 ${predConfidence < 85 ? 'text-red-600' : 'text-emerald-700'}`}>
+                  {predConfidence}%
+                </p>
+                <span className="text-[10px] text-cortex-gray mt-1 block">
+                  {predConfidence >= 85 ? 'High Confidence Verified' : 'Review Required'}
+                </span>
+              </div>
+            </div>
+
+            {/* Proximate Analysis Breakdown Table */}
+            <div>
+              <h3 className="text-xs font-bold text-cortex-dark uppercase tracking-wider mb-3">
+                Laboratory Proximate Breakdown
+              </h3>
+              <table className="w-full text-xs border border-cortex-border rounded-lg overflow-hidden">
+                <thead className="bg-cortex-bg-secondary text-cortex-gray uppercase font-bold text-[10px]">
+                  <tr>
+                    <th className="py-2.5 px-4 text-left border-b border-cortex-border">Parameter</th>
+                    <th className="py-2.5 px-4 text-left border-b border-cortex-border">Standard Code</th>
+                    <th className="py-2.5 px-4 text-right border-b border-cortex-border">Measured Weight (%)</th>
+                    <th className="py-2.5 px-4 text-right border-b border-cortex-border">Allowable Tolerance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-cortex-border text-cortex-dark">
+                  <tr>
+                    <td className="py-2 px-4 font-semibold">Total Moisture (M)</td>
+                    <td className="py-2 px-4 font-mono text-cortex-gray">IS 1350 (Part I)</td>
+                    <td className="py-2 px-4 text-right font-mono font-bold">{predMoisture}%</td>
+                    <td className="py-2 px-4 text-right font-mono text-cortex-gray">±0.5%</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-4 font-semibold">Ash Content (A)</td>
+                    <td className="py-2 px-4 font-mono text-cortex-gray">IS 1350 (Part I)</td>
+                    <td className="py-2 px-4 text-right font-mono font-bold">{predAsh}%</td>
+                    <td className="py-2 px-4 text-right font-mono text-cortex-gray">±0.8%</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-4 font-semibold">Volatile Matter (VM)</td>
+                    <td className="py-2 px-4 font-mono text-cortex-gray">IS 1350 (Part I)</td>
+                    <td className="py-2 px-4 text-right font-mono font-bold">{predVm}%</td>
+                    <td className="py-2 px-4 text-right font-mono text-cortex-gray">±0.6%</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-4 font-semibold">Fixed Carbon (FC)</td>
+                    <td className="py-2 px-4 font-mono text-cortex-gray">By Difference</td>
+                    <td className="py-2 px-4 text-right font-mono font-bold">{predFc}%</td>
+                    <td className="py-2 px-4 text-right font-mono text-cortex-gray">Calculated</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Dispatch Intelligence Decision */}
+            <div className="p-5 border-l-4 border-gold-500 bg-gold-50/30 rounded-r-xl">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gold-800 block mb-1">
+                Authorized Dispatch Instruction ({dispatch.priority})
+              </span>
+              <p className="text-sm font-bold text-cortex-dark">
+                Recommended End-Use: {dispatch.use}
+              </p>
+              <p className="text-xs text-cortex-gray mt-1 leading-relaxed">
+                {dispatch.instructions}
+              </p>
+            </div>
+
+            {/* Signature footer */}
+            <div className="border-t border-cortex-border pt-6 mt-4 flex justify-between items-end text-xs text-cortex-gray">
+              <div>
+                <p className="font-bold text-cortex-dark">CarbonCortex Automated Validator</p>
+                <p className="text-[10px]">Machine Learning Certification Engine v1.0</p>
+              </div>
+              <div className="text-right">
+                <div className="w-36 border-b border-cortex-dark/50 mb-1"></div>
+                <p className="font-bold text-cortex-dark">Chief Quality Officer / Lab Lead</p>
+                <p className="text-[10px]">Certified Signature / CIL Audit</p>
+              </div>
+            </div>
+          </div>
+        )
+      )}
+
+      {/* View 2: Enterprise Database Reports */}
+      {activeReportTab !== 'consignment' && (
+        <div className="flex flex-col gap-6">
+          {loadingReport ? (
+            <div className="p-12 text-center text-xs text-cortex-gray font-semibold flex items-center justify-center gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin text-gold-600" />
+              <span>Aggregating real-time records from MongoDB...</span>
+            </div>
+          ) : reportData ? (
+            <>
+              {/* Summary Banner */}
+              <div className="p-5 bg-white border border-cortex-border rounded-2xl shadow-premium flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-cortex-dark">{reportData.title}</h3>
+                  <p className="text-xs text-cortex-gray mt-0.5">{reportData.summary}</p>
+                </div>
+                <div className="flex items-center gap-4 text-xs font-mono">
+                  <div className="bg-gold-50 text-gold-800 px-3 py-1.5 rounded-lg border border-gold-200">
+                    <span className="font-bold">{reportData.record_count}</span> Records Queried
+                  </div>
+                  <span className="text-[10px] text-cortex-gray">
+                    Generated: {new Date(reportData.generated_at).toLocaleTimeString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Data Table */}
+              <Card title={`Live Database Audit: ${reportData.title}`} className="shadow-premium">
+                {reportData.data && reportData.data.length > 0 ? (
+                  <Table 
+                    columns={getDynamicColumns()}
+                    data={reportData.data}
+                  />
+                ) : (
+                  <p className="p-8 text-center text-xs text-cortex-gray">
+                    No database records found for this report category.
+                  </p>
+                )}
+              </Card>
+            </>
+          ) : (
+            <p className="p-8 text-center text-xs text-cortex-gray">
+              Unable to load report from server.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

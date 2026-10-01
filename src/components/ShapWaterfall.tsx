@@ -111,7 +111,7 @@ export const ShapWaterfall: React.FC<ShapWaterfallProps> = ({
               {/* Feature Details */}
               <div className="w-1/3 flex flex-col">
                 <span className="font-bold text-cortex-dark">{item.feature}</span>
-                <span className="text-[10px] text-cortex-gray">Value: {item.actualValue}</span>
+                <span className="text-[10px] text-cortex-gray">Value: {item.actualValue || (item as any).actual_value}</span>
               </div>
 
               {/* Waterfall bar */}

@@ -30,12 +30,17 @@ export const History: React.FC = () => {
 
   // Filter history logs based on search and selected state
   const filteredHistory = history.filter((item) => {
+    const sId = (item.sample_code || item.sampleId || item.sample_id || '').toLowerCase();
+    const mName = (item.mine_name || item.mineName || '').toLowerCase();
+    const cField = (item.coalfield || '').toLowerCase();
+    const st = item.state || '';
+
     const matchesSearch = 
-      item.sampleId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.mineName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.coalfield.toLowerCase().includes(searchTerm.toLowerCase());
+      sId.includes(searchTerm.toLowerCase()) ||
+      mName.includes(searchTerm.toLowerCase()) ||
+      cField.includes(searchTerm.toLowerCase());
       
-    const matchesState = selectedState === 'ALL' || item.state === selectedState;
+    const matchesState = selectedState === 'ALL' || st === selectedState;
     
     return matchesSearch && matchesState;
   });
@@ -48,15 +53,15 @@ export const History: React.FC = () => {
   const handleExportCSV = () => {
     const headers = ['Sample ID', 'Mine Name', 'Coalfield', 'State', 'Predicted GCV (kcal/kg)', 'CIL Grade', 'Confidence (%)', 'Timestamp', 'Status'];
     const rows = filteredHistory.map(item => [
-      item.sampleId,
-      item.mineName,
+      item.sample_code || item.sampleId || item.sample_id,
+      item.mine_name || item.mineName,
       item.coalfield,
       item.state,
-      item.gcv,
+      Math.round(item.predictions?.gcv ?? item.gcv ?? 0),
       item.grade,
-      item.confidence,
-      item.timestamp,
-      item.status
+      item.confidence > 1 ? Math.round(item.confidence) : Math.round(item.confidence * 100),
+      item.created_at ? new Date(item.created_at).toLocaleString() : item.timestamp,
+      item.status || (item.verification_required ? 'LIMIT' : 'OPTIMAL')
     ]);
 
     const csvContent = "data:text/csv;charset=utf-8," 
@@ -74,26 +79,29 @@ export const History: React.FC = () => {
   const columns = [
     { 
       header: 'Sample ID', 
-      accessor: (row: any) => <span className="font-mono font-bold text-cortex-dark">{row.sampleId}</span> 
+      accessor: (row: any) => <span className="font-mono font-bold text-cortex-dark">{row.sample_code || row.sampleId || row.sample_id}</span> 
     },
-    { header: 'Basin / Mine', accessor: (row: any) => `${row.mineName} (${row.coalfield})` },
-    { header: 'State Region', accessor: 'state' as const },
+    { header: 'Basin / Mine', accessor: (row: any) => `${row.mine_name || row.mineName} (${row.coalfield})` },
+    { header: 'State Region', accessor: (row: any) => row.state },
     { 
       header: 'Predicted GCV', 
-      accessor: (row: any) => <span className="font-mono font-bold text-gold-900">{row.gcv} kcal/kg</span> 
+      accessor: (row: any) => <span className="font-mono font-bold text-gold-900">{Math.round(row.predictions?.gcv ?? row.gcv ?? 0)} kcal/kg</span> 
     },
-    { header: 'Coal Grade', accessor: 'grade' as const },
+    { header: 'Coal Grade', accessor: (row: any) => row.grade },
     { 
       header: 'Confidence', 
-      accessor: (row: any) => <span className="font-mono">{row.confidence}%</span> 
+      accessor: (row: any) => {
+        const conf = row.confidence > 1 ? Math.round(row.confidence) : Math.round((row.confidence || 0.95) * 100);
+        return <span className={`font-mono font-bold ${conf < 85 ? 'text-red-600' : 'text-cortex-dark'}`}>{conf}%</span>;
+      }
     },
     { 
       header: 'Timestamp', 
-      accessor: (row: any) => <span className="text-[11px] text-cortex-gray font-mono">{row.timestamp}</span> 
+      accessor: (row: any) => <span className="text-[11px] text-cortex-gray font-mono">{row.created_at ? new Date(row.created_at).toLocaleString() : (row.timestamp || 'Recent')}</span> 
     },
     { 
       header: 'Status', 
-      accessor: (row: any) => getStatusBadge(row.status) 
+      accessor: (row: any) => getStatusBadge(row.status || (row.verification_required ? 'LIMIT' : 'OPTIMAL')) 
     }
   ];
 

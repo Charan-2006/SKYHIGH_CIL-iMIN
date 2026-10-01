@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: carboncortex-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: carboncortex
+    volumes:
+      - mongodb_data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: carboncortex-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - DATABASE_NAME=carboncortex
+      - JWT_SECRET=carboncortex-super-secret-jwt-key-2026-cil-imin
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=1440
+      - CONFIDENCE_THRESHOLD=0.85
+      - MODEL_DIR=/app/models/trained
+      - DATA_DIR=/app/data
+      - CONFIG_DIR=/app/config
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:80,http://localhost:3000
+      - ENVIRONMENT=production
+    depends_on:
+      - mongodb
+    volumes:
+      - backend_models:/app/models/trained
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: carboncortex-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongodb_data:
+  backend_models:
