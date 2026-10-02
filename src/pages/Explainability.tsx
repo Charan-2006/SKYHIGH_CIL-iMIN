@@ -38,13 +38,13 @@ export const Explainability: React.FC = () => {
 
   if (!lastPrediction) {
     return (
-      <div className="text-left py-12 max-w-lg mx-auto">
+      <div className="text-left py-12 max-w-lg mx-auto flex-1 flex flex-col justify-center min-h-[400px]">
         <Card title="No Prediction Active" className="text-center flex flex-col items-center">
           <BrainCircuit className="w-12 h-12 text-gold-500 mb-4 animate-pulse" />
           <p className="text-xs text-cortex-gray mb-6">
-            Please run an XGBoost prediction first to generate SHAP TreeExplainer feature attributions.
+            Please run an AI evaluation first to generate feature attributions.
           </p>
-          <Button onClick={() => navigate('/laboratory')}>Go to Laboratory Input</Button>
+          <Button onClick={() => navigate('/evaluation')}>Go to Quality Evaluation</Button>
         </Card>
       </div>
     );
@@ -72,15 +72,15 @@ export const Explainability: React.FC = () => {
   };
 
   return (
-    <div className="text-left select-none flex flex-col gap-6">
+    <div className="text-left select-none flex flex-col gap-6 flex-1 min-h-0">
       {/* Header breadcrumb */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <button 
-            onClick={() => navigate('/prediction')}
+            onClick={() => navigate('/evaluation')}
             className="inline-flex items-center gap-1 text-xs font-bold text-gold-700 hover:text-gold-900 mb-1.5 cursor-pointer uppercase tracking-wider"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Prediction Outcome
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Quality Evaluation
           </button>
           <h1 className="text-2xl font-bold text-cortex-dark">Explainable AI (SHAP TreeExplainer)</h1>
         </div>
@@ -89,7 +89,7 @@ export const Explainability: React.FC = () => {
           variant="outline" 
           size="sm" 
           onClick={handleDownloadShap}
-          className="flex items-center gap-1.5 font-bold cursor-pointer"
+          className="flex items-center gap-1.5 font-bold cursor-pointer shrink-0"
         >
           <Download className="w-3.5 h-3.5" />
           <span>Export SHAP Attribution JSON</span>
@@ -104,9 +104,9 @@ export const Explainability: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 flex-1 min-h-0">
         {/* Waterfall Chart Column */}
-        <div className="lg:col-span-8">
+        <div className="xl:col-span-8 min-w-0">
           <ShapWaterfall
             shapValues={shapList}
             baseValue={baseValue}
@@ -115,7 +115,7 @@ export const Explainability: React.FC = () => {
         </div>
 
         {/* Narratives and Context Column */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
+        <div className="xl:col-span-4 min-w-0 flex flex-col gap-6">
           {/* Cortex Narrative Card */}
           <div className="bg-gold-800 border border-gold-900/10 text-white rounded-2xl p-6 shadow-premium relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-radial-gradient from-white/10 to-transparent rounded-full -translate-y-1/3 translate-x-1/3"></div>

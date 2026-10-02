@@ -30,7 +30,7 @@ export const CoalMap: React.FC<CoalMapProps> = ({ onSubsidiarySelect }) => {
 
   if (!mapReady) {
     return (
-      <div className="w-full h-[500px] bg-cortex-bg-secondary border border-cortex-border rounded-xl flex items-center justify-center text-xs text-cortex-gray font-semibold">
+      <div className="w-full min-h-[460px] lg:min-h-[600px] h-full bg-cortex-bg-secondary border border-cortex-border rounded-xl flex items-center justify-center text-xs text-cortex-gray font-semibold">
         <svg className="animate-spin h-5 w-5 text-gold-500 mr-2" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -41,12 +41,12 @@ export const CoalMap: React.FC<CoalMapProps> = ({ onSubsidiarySelect }) => {
   }
 
   return (
-    <div className="relative w-full h-[500px] rounded-xl overflow-hidden border border-cortex-border shadow-premium">
+    <div className="relative w-full min-h-[460px] lg:min-h-[600px] h-full rounded-xl overflow-hidden border border-cortex-border shadow-premium flex flex-col">
       <MapContainer 
         center={[23.3, 82.5]} // Centered on major Coal India activity belt
         zoom={5} 
         scrollWheelZoom={false}
-        className="w-full h-full"
+        className="w-full h-full min-h-[460px] lg:min-h-[600px] flex-1"
       >
         {/* Sleek Minimal Map Tiles (CartoDB Positron style coordinates) */}
         <TileLayer

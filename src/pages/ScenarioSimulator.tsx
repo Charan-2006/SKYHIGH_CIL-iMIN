@@ -1,307 +1,534 @@
 import React, { useState } from 'react';
-import { scenarioApi, type ScenarioSimulationResult } from '../api/scenarios';
 import Card from '../components/Card';
 import Button from '../components/Button';
-import { Sliders, Scale } from 'lucide-react';
+import { 
+  CheckCircle2, 
+  AlertTriangle, 
+  Minus,
+  Play
+} from 'lucide-react';
+
+interface CoalSource {
+  mine: string;
+  seam: string;
+  gcv: number;
+  ash: number;
+  moisture: number;
+  cost_per_ton: number;
+}
+
+const AVAILABLE_COAL_SOURCES: CoalSource[] = [
+  {
+    mine: 'Moonidih UG (BCCL)',
+    seam: 'Seam XVI',
+    gcv: 6450,
+    ash: 12.8,
+    moisture: 1.4,
+    cost_per_ton: 4850
+  },
+  {
+    mine: 'Jayant OCP (NCL)',
+    seam: 'Seam Purewa',
+    gcv: 5380,
+    ash: 22.4,
+    moisture: 5.8,
+    cost_per_ton: 3100
+  },
+  {
+    mine: 'Gevra OCP (SECL)',
+    seam: 'Seam Kusmunda',
+    gcv: 4920,
+    ash: 28.2,
+    moisture: 7.2,
+    cost_per_ton: 2450
+  }
+];
+
+interface PlanMetrics {
+  gcv: number;
+  ash: number;
+  moisture: number;
+  costPerTon: number;
+  totalCost: number;
+}
 
 export const ScenarioSimulator: React.FC = () => {
-  const [scenarioName, setScenarioName] = useState('Monsoon High-Moisture Compensation');
-  const [targetQuantity, setTargetQuantity] = useState(10000);
-  
-  // Baseline parameters
-  const [baseTargetGcv, setBaseTargetGcv] = useState(5000);
-  const [baseMaxAsh, setBaseMaxAsh] = useState(25.0);
-  const [baseMaxMoisture, setBaseMaxMoisture] = useState(6.0);
-  
-  // What-If parameters
-  const [whatTargetGcv, setWhatTargetGcv] = useState(4850);
-  const [whatMaxAsh, setWhatMaxAsh] = useState(28.0);
-  const [whatMaxMoisture, setWhatMaxMoisture] = useState(8.5);
+  // Current Plan inputs
+  const [batchQuantity, setBatchQuantity] = useState(20000);
+  const [currentGcv, setCurrentGcv] = useState(5000);
+  const [currentMaxAsh, setCurrentMaxAsh] = useState(25.0);
+  const [currentMaxMoisture, setCurrentMaxMoisture] = useState(6.0);
 
+  // What-If Plan inputs
+  const [whatIfGcv, setWhatIfGcv] = useState(4850);
+  const [whatIfMaxAsh, setWhatIfMaxAsh] = useState(25.0);
+  const [whatIfMaxMoisture, setWhatIfMaxMoisture] = useState(8.5);
+
+  const [simulated, setSimulated] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ScenarioSimulationResult | null>(null);
 
-  const defaultSources = [
-    { source_id: 'SRC-A', mine_name: 'Moonidih UG (BCCL)', available_quantity: 8000, gcv: 6450, ash: 12.8, moisture: 1.4, volatile_matter: 28.5, cost_per_ton: 84.50 },
-    { source_id: 'SRC-B', mine_name: 'Jayant OCP (NCL)', available_quantity: 12000, gcv: 5380, ash: 22.4, moisture: 5.8, volatile_matter: 26.8, cost_per_ton: 54.00 },
-    { source_id: 'SRC-C', mine_name: 'Gevra OCP (SECL)', available_quantity: 15000, gcv: 4920, ash: 28.2, moisture: 7.2, volatile_matter: 24.1, cost_per_ton: 42.50 }
-  ];
+  // Solver: computes realistic blend given targets and available coals
+  const computePlanMetrics = (targetGcv: number, maxAsh: number, maxMoisture: number, quantity: number): PlanMetrics => {
+    // Determine blend ratio among the 3 sources to satisfy targets with minimum cost
+    // Source 0: Moonidih (high GCV, low ash/moist, high cost)
+    // Source 1: Jayant (mid GCV, mid ash/moist, mid cost)
+    // Source 2: Gevra (standard GCV, higher ash/moist, lowest cost)
+    let bestCost = Infinity;
+    let bestBlend = [0.33, 0.33, 0.34];
 
-  const handleSimulate = async () => {
-    setLoading(true);
-    try {
-      const res = await scenarioApi.simulate({
-        scenario_name: scenarioName,
-        baseline: {
-          sources: defaultSources,
-          target_quantity: targetQuantity,
-          target_gcv: baseTargetGcv,
-          max_ash: baseMaxAsh,
-          max_moisture: baseMaxMoisture
-        },
-        what_if: {
-          sources: defaultSources,
-          target_quantity: targetQuantity,
-          target_gcv: whatTargetGcv,
-          max_ash: whatMaxAsh,
-          max_moisture: whatMaxMoisture
+    // Grid search for optimal blend satisfying constraints
+    for (let w0 = 0; w0 <= 1.01; w0 += 0.05) {
+      for (let w1 = 0; w1 <= 1.01 - w0; w1 += 0.05) {
+        const w2 = Math.max(0, 1.0 - w0 - w1);
+        const blendGcv = w0 * AVAILABLE_COAL_SOURCES[0].gcv + w1 * AVAILABLE_COAL_SOURCES[1].gcv + w2 * AVAILABLE_COAL_SOURCES[2].gcv;
+        const blendAsh = w0 * AVAILABLE_COAL_SOURCES[0].ash + w1 * AVAILABLE_COAL_SOURCES[1].ash + w2 * AVAILABLE_COAL_SOURCES[2].ash;
+        const blendMoist = w0 * AVAILABLE_COAL_SOURCES[0].moisture + w1 * AVAILABLE_COAL_SOURCES[1].moisture + w2 * AVAILABLE_COAL_SOURCES[2].moisture;
+        const blendCost = w0 * AVAILABLE_COAL_SOURCES[0].cost_per_ton + w1 * AVAILABLE_COAL_SOURCES[1].cost_per_ton + w2 * AVAILABLE_COAL_SOURCES[2].cost_per_ton;
+
+        // Soft penalty if constraints not fully met
+        const gcvDeficit = Math.max(0, targetGcv - blendGcv);
+        const ashExcess = Math.max(0, blendAsh - maxAsh);
+        const moistExcess = Math.max(0, blendMoist - maxMoisture);
+
+        const penalty = (gcvDeficit * 10) + (ashExcess * 1000) + (moistExcess * 1000);
+        const totalObjective = blendCost + penalty;
+
+        if (totalObjective < bestCost) {
+          bestCost = totalObjective;
+          bestBlend = [w0, w1, w2];
         }
-      });
-      setResult(res);
-    } catch (err) {
-      console.error('Simulation error:', err);
-    } finally {
-      setLoading(false);
+      }
     }
+
+    const finalGcv = Math.round(bestBlend[0] * AVAILABLE_COAL_SOURCES[0].gcv + bestBlend[1] * AVAILABLE_COAL_SOURCES[1].gcv + bestBlend[2] * AVAILABLE_COAL_SOURCES[2].gcv);
+    const finalAsh = Number((bestBlend[0] * AVAILABLE_COAL_SOURCES[0].ash + bestBlend[1] * AVAILABLE_COAL_SOURCES[1].ash + bestBlend[2] * AVAILABLE_COAL_SOURCES[2].ash).toFixed(1));
+    const finalMoist = Number((bestBlend[0] * AVAILABLE_COAL_SOURCES[0].moisture + bestBlend[1] * AVAILABLE_COAL_SOURCES[1].moisture + bestBlend[2] * AVAILABLE_COAL_SOURCES[2].moisture).toFixed(1));
+    const costPerTon = Number((bestBlend[0] * AVAILABLE_COAL_SOURCES[0].cost_per_ton + bestBlend[1] * AVAILABLE_COAL_SOURCES[1].cost_per_ton + bestBlend[2] * AVAILABLE_COAL_SOURCES[2].cost_per_ton).toFixed(2));
+    const totalCost = Math.round(costPerTon * quantity);
+
+    return {
+      gcv: finalGcv,
+      ash: finalAsh,
+      moisture: finalMoist,
+      costPerTon,
+      totalCost
+    };
+  };
+
+  const currentResult = computePlanMetrics(currentGcv, currentMaxAsh, currentMaxMoisture, batchQuantity);
+  const whatIfResult = computePlanMetrics(whatIfGcv, whatIfMaxAsh, whatIfMaxMoisture, batchQuantity);
+
+  const gcvChange = whatIfResult.gcv - currentResult.gcv;
+  const ashChange = Number((whatIfResult.ash - currentResult.ash).toFixed(1));
+  const moistureChange = Number((whatIfResult.moisture - currentResult.moisture).toFixed(1));
+  const costPerTonChange = Number((whatIfResult.costPerTon - currentResult.costPerTon).toFixed(2));
+  const totalCostChange = whatIfResult.totalCost - currentResult.totalCost;
+
+  const handleRunSimulation = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setSimulated(true);
+      setLoading(false);
+    }, 300);
   };
 
   return (
-    <div className="text-left select-none flex flex-col gap-6">
-      {/* Header */}
+    <div className="text-left select-none flex flex-col gap-6 flex-1 min-h-0">
+      {/* 1. Header */}
       <div>
-        <h1 className="text-xs font-bold uppercase tracking-widest text-gold-700">What-If Analysis Engine</h1>
-        <h2 className="text-2xl font-bold text-cortex-dark mt-1">Operational Scenario Simulator</h2>
+        <h1 className="text-2xl font-bold text-cortex-dark">Scenario Simulator</h1>
+        <p className="text-sm text-cortex-gray mt-1">
+          Compare your current plan with a what-if scenario.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Side: Parameters input */}
-        <div className="lg:col-span-5 flex flex-col gap-6 bg-white border border-cortex-border rounded-2xl p-6 shadow-premium">
-          <div className="flex items-center gap-2 pb-3 border-b border-cortex-border/50">
-            <Sliders className="w-5 h-5 text-gold-500" />
-            <h3 className="text-sm font-bold text-cortex-dark uppercase tracking-wider">
-              Simulation Parameters
-            </h3>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-cortex-gray block mb-1.5">
-              Scenario Name
-            </label>
-            <input
-              type="text"
-              value={scenarioName}
-              onChange={(e) => setScenarioName(e.target.value)}
-              className="w-full px-4 py-2 border border-cortex-border rounded-xl text-xs text-cortex-dark outline-none focus:border-gold-500 font-semibold"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-cortex-gray block mb-1.5">
-              Total Target Batch Quantity: <span className="font-mono font-bold text-cortex-dark">{targetQuantity.toLocaleString()} t</span>
-            </label>
-            <input
-              type="range"
-              min="2000"
-              max="50000"
-              step="1000"
-              value={targetQuantity}
-              onChange={(e) => setTargetQuantity(Number(e.target.value))}
-              className="w-full accent-gold-600 cursor-pointer"
-            />
-          </div>
-
-          {/* Baseline vs What-If Sliders */}
-          <div className="grid grid-cols-2 gap-4 pt-2 border-t border-cortex-border/50">
-            {/* Baseline Column */}
-            <div className="flex flex-col gap-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray">
-                Baseline Specs
-              </span>
-              <div>
-                <label className="text-[10px] text-cortex-gray">Target GCV: {baseTargetGcv}</label>
-                <input
-                  type="range"
-                  min="4000"
-                  max="6200"
-                  step="50"
-                  value={baseTargetGcv}
-                  onChange={(e) => setBaseTargetGcv(Number(e.target.value))}
-                  className="w-full accent-gray-500"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] text-cortex-gray">Max Ash: {baseMaxAsh}%</label>
-                <input
-                  type="range"
-                  min="15"
-                  max="40"
-                  step="0.5"
-                  value={baseMaxAsh}
-                  onChange={(e) => setBaseMaxAsh(Number(e.target.value))}
-                  className="w-full accent-gray-500"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] text-cortex-gray">Max Moisture: {baseMaxMoisture}%</label>
-                <input
-                  type="range"
-                  min="3"
-                  max="15"
-                  step="0.5"
-                  value={baseMaxMoisture}
-                  onChange={(e) => setBaseMaxMoisture(Number(e.target.value))}
-                  className="w-full accent-gray-500"
-                />
-              </div>
+      {/* 2 & 3. Current Plan vs What-If Plan */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
+        {/* Current Plan Card */}
+        <Card title="Current Plan" className="bg-white border border-cortex-border shadow-sm">
+          <div className="space-y-4 pt-2">
+            <div>
+              <label className="text-xs font-semibold text-cortex-gray uppercase tracking-wider block mb-1">
+                Batch Quantity (tons)
+              </label>
+              <input
+                type="number"
+                min="1000"
+                max="100000"
+                step="1000"
+                value={batchQuantity}
+                onChange={(e) => setBatchQuantity(Math.max(1000, Number(e.target.value)))}
+                className="w-full px-3.5 py-2 text-sm font-semibold font-mono bg-cortex-bg-secondary border border-cortex-border rounded-xl text-cortex-dark outline-none focus:border-gold-500"
+              />
             </div>
 
-            {/* What-If Column */}
-            <div className="flex flex-col gap-3 bg-gold-50/20 p-2.5 rounded-xl border border-gold-200/50">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-gold-900">
-                What-If Specs
-              </span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="text-[10px] text-gold-800 font-semibold">Target GCV: {whatTargetGcv}</label>
-                <input
-                  type="range"
-                  min="4000"
-                  max="6200"
-                  step="50"
-                  value={whatTargetGcv}
-                  onChange={(e) => setWhatTargetGcv(Number(e.target.value))}
-                  className="w-full accent-gold-600"
-                />
+                <label className="text-xs font-semibold text-cortex-gray block mb-1">
+                  Target GCV
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="3500"
+                    max="6500"
+                    step="50"
+                    value={currentGcv}
+                    onChange={(e) => setCurrentGcv(Number(e.target.value))}
+                    className="w-full px-3 py-2 text-sm font-semibold font-mono bg-cortex-bg-secondary border border-cortex-border rounded-xl text-cortex-dark outline-none focus:border-gold-500"
+                  />
+                  <span className="absolute right-2.5 top-2.5 text-[10px] text-cortex-gray pointer-events-none">kcal</span>
+                </div>
               </div>
+
               <div>
-                <label className="text-[10px] text-gold-800 font-semibold">Max Ash: {whatMaxAsh}%</label>
-                <input
-                  type="range"
-                  min="15"
-                  max="40"
-                  step="0.5"
-                  value={whatMaxAsh}
-                  onChange={(e) => setWhatMaxAsh(Number(e.target.value))}
-                  className="w-full accent-gold-600"
-                />
+                <label className="text-xs font-semibold text-cortex-gray block mb-1">
+                  Max Ash
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="10"
+                    max="45"
+                    step="0.5"
+                    value={currentMaxAsh}
+                    onChange={(e) => setCurrentMaxAsh(Number(e.target.value))}
+                    className="w-full px-3 py-2 text-sm font-semibold font-mono bg-cortex-bg-secondary border border-cortex-border rounded-xl text-cortex-dark outline-none focus:border-gold-500"
+                  />
+                  <span className="absolute right-2.5 top-2.5 text-[10px] text-cortex-gray pointer-events-none">%</span>
+                </div>
               </div>
+
               <div>
-                <label className="text-[10px] text-gold-800 font-semibold">Max Moisture: {whatMaxMoisture}%</label>
-                <input
-                  type="range"
-                  min="3"
-                  max="15"
-                  step="0.5"
-                  value={whatMaxMoisture}
-                  onChange={(e) => setWhatMaxMoisture(Number(e.target.value))}
-                  className="w-full accent-gold-600"
-                />
+                <label className="text-xs font-semibold text-cortex-gray block mb-1">
+                  Max Moisture
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="2"
+                    max="20"
+                    step="0.5"
+                    value={currentMaxMoisture}
+                    onChange={(e) => setCurrentMaxMoisture(Number(e.target.value))}
+                    className="w-full px-3 py-2 text-sm font-semibold font-mono bg-cortex-bg-secondary border border-cortex-border rounded-xl text-cortex-dark outline-none focus:border-gold-500"
+                  />
+                  <span className="absolute right-2.5 top-2.5 text-[10px] text-cortex-gray pointer-events-none">%</span>
+                </div>
               </div>
             </div>
           </div>
+        </Card>
 
-          <Button
-            onClick={handleSimulate}
-            disabled={loading}
-            className="w-full py-3 font-bold text-xs"
-          >
-            {loading ? 'Running OR-Tools Simulators...' : 'Run Comparative What-If Simulation'}
-          </Button>
-        </div>
+        {/* What-If Plan Card */}
+        <Card title="What-If Plan" className="bg-gold-50/20 border border-gold-200/70 shadow-sm">
+          <div className="space-y-4 pt-2">
+            <p className="text-xs text-gold-900 font-medium">
+              Change these values to see what happens.
+            </p>
 
-        {/* Right Side: Comparative Results */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          {result ? (
-            <div className="flex flex-col gap-6">
-              {/* Comparative Hero Matrix */}
-              <div className="bg-white border border-cortex-border rounded-2xl p-6 shadow-premium">
-                <div className="flex items-center justify-between pb-4 border-b border-cortex-border/60 mb-6">
-                  <div>
-                    <span className="text-base font-bold text-cortex-dark">{result.scenario_name}</span>
-                    <p className="text-xs text-cortex-gray mt-0.5">{result.summary}</p>
-                  </div>
-                  <Scale className="w-5 h-5 text-gold-600" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gold-900 block mb-1">
+                  Target GCV
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="3500"
+                    max="6500"
+                    step="50"
+                    value={whatIfGcv}
+                    onChange={(e) => setWhatIfGcv(Number(e.target.value))}
+                    className="w-full px-3 py-2 text-sm font-semibold font-mono bg-white border border-gold-300 rounded-xl text-cortex-dark outline-none focus:border-gold-500"
+                  />
+                  <span className="absolute right-2.5 top-2.5 text-[10px] text-cortex-gray pointer-events-none">kcal</span>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="p-3 bg-cortex-bg-secondary rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-cortex-gray block">Energy Delta</span>
-                    <span className={`text-xl font-extrabold font-mono mt-1 block ${
-                      result.deltas.gcv_delta >= 0 ? 'text-emerald-700' : 'text-amber-700'
-                    }`}>
-                      {result.deltas.gcv_delta > 0 ? '+' : ''}{result.deltas.gcv_delta} kcal/kg
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-cortex-bg-secondary rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-cortex-gray block">Unit Cost Delta</span>
-                    <span className={`text-xl font-extrabold font-mono mt-1 block ${
-                      result.deltas.cost_per_ton_delta <= 0 ? 'text-emerald-700' : 'text-rose-700'
-                    }`}>
-                      {result.deltas.cost_per_ton_delta > 0 ? '+' : ''}${result.deltas.cost_per_ton_delta}/t
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-cortex-bg-secondary rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-cortex-gray block">Total Expenditure</span>
-                    <span className={`text-xl font-extrabold font-mono mt-1 block ${
-                      result.deltas.cost_delta <= 0 ? 'text-emerald-700' : 'text-rose-700'
-                    }`}>
-                      {result.deltas.cost_delta > 0 ? '+' : ''}${Math.round(result.deltas.cost_delta).toLocaleString()}
-                    </span>
-                  </div>
+              <div>
+                <label className="text-xs font-semibold text-gold-900 block mb-1">
+                  Max Ash
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="10"
+                    max="45"
+                    step="0.5"
+                    value={whatIfMaxAsh}
+                    onChange={(e) => setWhatIfMaxAsh(Number(e.target.value))}
+                    className="w-full px-3 py-2 text-sm font-semibold font-mono bg-white border border-gold-300 rounded-xl text-cortex-dark outline-none focus:border-gold-500"
+                  />
+                  <span className="absolute right-2.5 top-2.5 text-[10px] text-cortex-gray pointer-events-none">%</span>
                 </div>
+              </div>
 
-                {/* Side by side comparison table */}
-                <div className="mt-6 overflow-x-auto">
-                  <table className="w-full text-xs text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-cortex-border text-cortex-gray font-bold uppercase tracking-wider">
-                        <th className="py-2.5 px-3">Metric</th>
-                        <th className="py-2.5 px-3">Baseline</th>
-                        <th className="py-2.5 px-3 bg-gold-50/30 text-gold-900 font-bold">What-If Scenario</th>
-                        <th className="py-2.5 px-3">Variance</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-cortex-border/40 font-mono">
-                      <tr>
-                        <td className="py-2.5 px-3 font-semibold text-cortex-dark font-sans">Gross Calorific Value</td>
-                        <td className="py-2.5 px-3">{result.baseline_metrics.gcv} kcal/kg</td>
-                        <td className="py-2.5 px-3 bg-gold-50/20 font-bold">{result.what_if_metrics.gcv} kcal/kg</td>
-                        <td className="py-2.5 px-3">{result.deltas.gcv_delta > 0 ? '+' : ''}{result.deltas.gcv_delta}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2.5 px-3 font-semibold text-cortex-dark font-sans">Ash Content</td>
-                        <td className="py-2.5 px-3">{result.baseline_metrics.ash}%</td>
-                        <td className="py-2.5 px-3 bg-gold-50/20 font-bold">{result.what_if_metrics.ash}%</td>
-                        <td className="py-2.5 px-3">{result.deltas.ash_delta > 0 ? '+' : ''}{result.deltas.ash_delta}%</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2.5 px-3 font-semibold text-cortex-dark font-sans">Moisture Content</td>
-                        <td className="py-2.5 px-3">{result.baseline_metrics.moisture}%</td>
-                        <td className="py-2.5 px-3 bg-gold-50/20 font-bold">{result.what_if_metrics.moisture}%</td>
-                        <td className="py-2.5 px-3">{result.deltas.moisture_delta > 0 ? '+' : ''}{result.deltas.moisture_delta}%</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2.5 px-3 font-semibold text-cortex-dark font-sans">Total Batch Cost</td>
-                        <td className="py-2.5 px-3">${Math.round(result.baseline_metrics.total_cost).toLocaleString()}</td>
-                        <td className="py-2.5 px-3 bg-gold-50/20 font-bold">${Math.round(result.what_if_metrics.total_cost).toLocaleString()}</td>
-                        <td className="py-2.5 px-3 font-bold">${Math.round(result.deltas.cost_delta).toLocaleString()}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2.5 px-3 font-semibold text-cortex-dark font-sans">Quality Score Index</td>
-                        <td className="py-2.5 px-3">{result.baseline_metrics.quality_score}</td>
-                        <td className="py-2.5 px-3 bg-gold-50/20 font-bold">{result.what_if_metrics.quality_score}</td>
-                        <td className="py-2.5 px-3">{result.deltas.quality_score_delta > 0 ? '+' : ''}{result.deltas.quality_score_delta}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="mt-6 p-4 bg-gold-50/50 border border-gold-200 rounded-xl text-xs text-gold-900 leading-relaxed font-semibold">
-                  {result.strategic_advice}
+              <div>
+                <label className="text-xs font-semibold text-gold-900 block mb-1">
+                  Max Moisture
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="2"
+                    max="20"
+                    step="0.5"
+                    value={whatIfMaxMoisture}
+                    onChange={(e) => setWhatIfMaxMoisture(Number(e.target.value))}
+                    className="w-full px-3 py-2 text-sm font-semibold font-mono bg-white border border-gold-300 rounded-xl text-cortex-dark outline-none focus:border-gold-500"
+                  />
+                  <span className="absolute right-2.5 top-2.5 text-[10px] text-cortex-gray pointer-events-none">%</span>
                 </div>
               </div>
             </div>
-          ) : (
-            <Card title="Ready to Simulate" className="text-center py-16 flex flex-col items-center">
-              <Scale className="w-12 h-12 text-gold-500 mb-3 animate-pulse" />
-              <p className="text-xs text-cortex-gray max-w-sm mb-4">
-                Adjust baseline and what-if targets on the left, then click 'Run Comparative What-If Simulation' to compute mathematically rigorous linear program differentials.
-              </p>
-            </Card>
-          )}
-        </div>
+
+            <div className="pt-2 text-[11px] text-cortex-gray">
+              Batch Quantity is kept at <span className="font-semibold text-cortex-dark">{batchQuantity.toLocaleString()} tons</span> for fair comparison.
+            </div>
+          </div>
+        </Card>
       </div>
+
+      {/* 4. Coal Sources Table */}
+      <Card title="Available Coal Sources" className="bg-white border border-cortex-border shadow-sm">
+        <div className="overflow-x-auto min-w-0">
+          <table className="w-full text-xs text-left border-collapse min-w-[500px]">
+            <thead>
+              <tr className="border-b border-cortex-border text-cortex-gray font-semibold uppercase tracking-wider">
+                <th className="py-2.5 px-3">Mine</th>
+                <th className="py-2.5 px-3">Seam</th>
+                <th className="py-2.5 px-3">GCV</th>
+                <th className="py-2.5 px-3">Ash</th>
+                <th className="py-2.5 px-3">Moisture</th>
+                <th className="py-2.5 px-3">Cost/t</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-cortex-border/40 font-mono text-cortex-dark">
+              {AVAILABLE_COAL_SOURCES.map((source, idx) => (
+                <tr key={idx} className="hover:bg-cortex-bg-secondary/40 transition-colors">
+                  <td className="py-2.5 px-3 font-medium font-sans text-cortex-dark">{source.mine}</td>
+                  <td className="py-2.5 px-3 text-cortex-gray font-sans">{source.seam}</td>
+                  <td className="py-2.5 px-3 font-semibold">{source.gcv} kcal/kg</td>
+                  <td className="py-2.5 px-3">{source.ash}%</td>
+                  <td className="py-2.5 px-3">{source.moisture}%</td>
+                  <td className="py-2.5 px-3 font-semibold">₹{source.cost_per_ton.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* 5. Run Simulation Button */}
+      <div className="flex justify-start">
+        <Button
+          onClick={handleRunSimulation}
+          disabled={loading}
+          className="px-8 py-3 text-xs font-bold bg-gold-600 hover:bg-gold-500 text-white rounded-xl shadow-sm flex items-center gap-2"
+        >
+          <Play className="w-4 h-4 fill-white" />
+          {loading ? 'Running Simulation...' : 'Run Simulation'}
+        </Button>
+      </div>
+
+      {/* 6. Results Section */}
+      {simulated && (
+        <div className="flex flex-col gap-6">
+          <div>
+            <h2 className="text-lg font-bold text-cortex-dark">Simulation Result</h2>
+          </div>
+
+          {/* 3 KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* GCV Change Card */}
+            <div className="p-4 bg-white border border-cortex-border rounded-xl shadow-sm flex flex-col justify-between">
+              <span className="text-xs font-semibold text-cortex-gray uppercase tracking-wider">
+                GCV Change
+              </span>
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className={`text-xl font-bold font-mono ${gcvChange >= 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  {gcvChange > 0 ? `+${gcvChange}` : gcvChange} kcal/kg
+                </span>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
+                  gcvChange > 0 
+                    ? 'bg-emerald-50 text-emerald-700' 
+                    : gcvChange < 0 
+                    ? 'bg-amber-50 text-amber-700' 
+                    : 'bg-gray-100 text-cortex-gray'
+                }`}>
+                  {gcvChange > 0 ? 'Higher GCV' : gcvChange < 0 ? 'Lower GCV' : 'Unchanged'}
+                </span>
+              </div>
+            </div>
+
+            {/* Cost Change Card */}
+            <div className="p-4 bg-white border border-cortex-border rounded-xl shadow-sm flex flex-col justify-between">
+              <span className="text-xs font-semibold text-cortex-gray uppercase tracking-wider">
+                Cost Change
+              </span>
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className={`text-xl font-bold font-mono ${costPerTonChange <= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {costPerTonChange > 0 ? `+₹${costPerTonChange}` : `-₹${Math.abs(costPerTonChange)}`}/t
+                </span>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
+                  costPerTonChange < 0 
+                    ? 'bg-emerald-50 text-emerald-700' 
+                    : costPerTonChange > 0 
+                    ? 'bg-rose-50 text-rose-700' 
+                    : 'bg-gray-100 text-cortex-gray'
+                }`}>
+                  {costPerTonChange < 0 ? 'Lower Cost' : costPerTonChange > 0 ? 'Higher Cost' : 'No Change'}
+                </span>
+              </div>
+            </div>
+
+            {/* Total Cost Change Card */}
+            <div className="p-4 bg-white border border-cortex-border rounded-xl shadow-sm flex flex-col justify-between">
+              <span className="text-xs font-semibold text-cortex-gray uppercase tracking-wider">
+                Total Cost Change
+              </span>
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className={`text-xl font-bold font-mono ${totalCostChange <= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {totalCostChange > 0 ? `+₹${totalCostChange.toLocaleString()}` : `-₹${Math.abs(totalCostChange).toLocaleString()}`}
+                </span>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
+                  totalCostChange < 0 
+                    ? 'bg-emerald-50 text-emerald-700' 
+                    : totalCostChange > 0 
+                    ? 'bg-rose-50 text-rose-700' 
+                    : 'bg-gray-100 text-cortex-gray'
+                }`}>
+                  {totalCostChange < 0 ? 'Lower Cost' : totalCostChange > 0 ? 'Higher Cost' : 'No Change'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 7 & 8. Comparison Table & Decision Summary */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-w-0">
+            {/* Simple Comparison Table */}
+            <div className="lg:col-span-7 bg-white border border-cortex-border rounded-2xl p-5 shadow-sm min-w-0">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-cortex-gray mb-4">
+                Plan Comparison
+              </h3>
+              <div className="overflow-x-auto min-w-0">
+                <table className="w-full text-xs text-left border-collapse min-w-[380px]">
+                  <thead>
+                    <tr className="border-b border-cortex-border text-cortex-gray font-bold uppercase tracking-wider">
+                      <th className="py-2.5 px-3">Metric</th>
+                      <th className="py-2.5 px-3">Current</th>
+                      <th className="py-2.5 px-3 bg-gold-50/40 text-gold-900">What-If</th>
+                      <th className="py-2.5 px-3">Change</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-cortex-border/40 font-mono text-cortex-dark">
+                    <tr>
+                      <td className="py-3 px-3 font-semibold text-cortex-dark font-sans">GCV</td>
+                      <td className="py-3 px-3">{currentResult.gcv.toLocaleString()} kcal/kg</td>
+                      <td className="py-3 px-3 bg-gold-50/30 font-bold">{whatIfResult.gcv.toLocaleString()} kcal/kg</td>
+                      <td className={`py-3 px-3 font-bold ${gcvChange >= 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {gcvChange > 0 ? `+${gcvChange}` : gcvChange} kcal/kg
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 px-3 font-semibold text-cortex-dark font-sans">Ash</td>
+                      <td className="py-3 px-3">{currentResult.ash}%</td>
+                      <td className="py-3 px-3 bg-gold-50/30 font-bold">{whatIfResult.ash}%</td>
+                      <td className="py-3 px-3 font-bold">
+                        {ashChange > 0 ? `+${ashChange}` : ashChange}%
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 px-3 font-semibold text-cortex-dark font-sans">Moisture</td>
+                      <td className="py-3 px-3">{currentResult.moisture}%</td>
+                      <td className="py-3 px-3 bg-gold-50/30 font-bold">{whatIfResult.moisture}%</td>
+                      <td className="py-3 px-3 font-bold">
+                        {moistureChange > 0 ? `+${moistureChange}` : moistureChange}%
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 px-3 font-semibold text-cortex-dark font-sans">Total Cost</td>
+                      <td className="py-3 px-3">₹{currentResult.totalCost.toLocaleString()}</td>
+                      <td className="py-3 px-3 bg-gold-50/30 font-bold">₹{whatIfResult.totalCost.toLocaleString()}</td>
+                      <td className={`py-3 px-3 font-bold ${totalCostChange <= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {totalCostChange > 0 ? `+₹${totalCostChange.toLocaleString()}` : `-₹${Math.abs(totalCostChange).toLocaleString()}`}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Decision Summary Card */}
+            <div className="lg:col-span-5 bg-white border border-cortex-border rounded-2xl p-5 shadow-sm flex flex-col justify-between min-w-0">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-cortex-gray mb-3">
+                  Scenario Summary
+                </h3>
+                <div className="space-y-2.5">
+                  <div className="flex items-start gap-2 text-xs">
+                    {totalCostChange <= 0 ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    )}
+                    <span className="text-cortex-dark font-medium leading-relaxed">
+                      {totalCostChange < 0 
+                        ? `Cost is lower by ₹${Math.abs(totalCostChange).toLocaleString()}` 
+                        : totalCostChange > 0 
+                        ? `Cost is higher by ₹${totalCostChange.toLocaleString()}` 
+                        : 'Total batch cost remains unchanged'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-start gap-2 text-xs">
+                    {whatIfMaxMoisture >= currentMaxMoisture ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    ) : (
+                      <Minus className="w-4 h-4 text-cortex-gray shrink-0 mt-0.5" />
+                    )}
+                    <span className="text-cortex-dark font-medium leading-relaxed">
+                      {whatIfMaxMoisture !== currentMaxMoisture
+                        ? `Moisture limit changes from ${currentMaxMoisture}% to ${whatIfMaxMoisture}%`
+                        : `Moisture limit remains at ${currentMaxMoisture}%`}
+                    </span>
+                  </div>
+
+                  <div className="flex items-start gap-2 text-xs">
+                    {gcvChange < 0 ? (
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    )}
+                    <span className="text-cortex-dark font-medium leading-relaxed">
+                      {gcvChange < 0
+                        ? `GCV decreases by ${Math.abs(gcvChange)} kcal/kg`
+                        : gcvChange > 0
+                        ? `GCV increases by ${gcvChange} kcal/kg`
+                        : 'GCV delivered remains unchanged'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recommended Action */}
+              <div className="mt-5 pt-4 border-t border-cortex-border/60">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-cortex-gray block mb-1">
+                  Recommended Action
+                </span>
+                <p className="text-xs text-cortex-dark font-medium leading-relaxed bg-cortex-bg-secondary p-3 rounded-xl border border-cortex-border/50">
+                  {gcvChange < 0 && totalCostChange < 0
+                    ? 'Review the lower GCV before using this scenario to ensure plant boiler compliance.'
+                    : totalCostChange <= 0 && gcvChange >= 0
+                    ? 'This scenario meets target quality requirements at an optimal lower cost.'
+                    : 'Evaluate whether the higher expenditure is necessary for current boiler specs.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

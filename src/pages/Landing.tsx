@@ -128,8 +128,8 @@ export const Landing: React.FC = () => {
               transition={{ delay: 0.2, duration: 0.4 }}
               className="text-center"
             >
-              <div className="w-16 h-16 bg-white/5 border border-gold-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Brain className="w-8 h-8 text-gold-500 animate-pulse" />
+              <div className="w-16 h-16 bg-white/10 border border-gold-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 p-2 shadow-lg">
+                <img src="/logo.png" alt="CarbonCortex Logo" className="w-full h-full object-contain" />
               </div>
               <h2 className="text-xl font-bold text-white tracking-widest uppercase">CarbonCortex</h2>
               <p className="text-xs text-gold-400 font-mono mt-2 tracking-widest">INITIALIZING OPERATION MODULES...</p>
@@ -146,10 +146,8 @@ export const Landing: React.FC = () => {
         
         {/* Navigation Header */}
         <header className="max-w-7xl mx-auto px-6 sm:px-8 py-6 flex justify-between items-center bg-transparent">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-white/10 backdrop-blur-md rounded-lg flex items-center justify-center text-gold-500 border border-white/10">
-              <Brain className="w-4 h-4" />
-            </div>
+          <div className="flex items-center gap-2.5">
+            <img src="/logo.png" alt="CarbonCortex Logo" className="w-8 h-8 rounded-lg object-contain shadow-sm" />
             <span className="text-lg font-bold tracking-tight text-white">CarbonCortex</span>
           </div>
           
@@ -248,8 +246,8 @@ export const Landing: React.FC = () => {
 
               {/* Center CarbonCortex Logo Container */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-black/40 backdrop-blur-md border border-gold-500/20 rounded-full shadow-2xl flex flex-col items-center justify-center z-10">
-                <div className="w-10 h-10 rounded-full bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-500 mb-2">
-                  <Brain className="w-5 h-5" />
+                <div className="w-14 h-14 rounded-full bg-black/50 border border-gold-500/30 flex items-center justify-center p-2 mb-2 shadow-inner">
+                  <img src="/logo.png" alt="CarbonCortex Logo" className="w-full h-full object-contain" />
                 </div>
                 <span className="text-[10px] tracking-widest font-extrabold text-gold-400 font-mono">CARBON.CORTEX</span>
                 <span className="text-[7px] tracking-wider text-white/50 uppercase font-bold mt-1">Telemetry Active</span>

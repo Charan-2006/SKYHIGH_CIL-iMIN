@@ -37,17 +37,17 @@ export const Profile: React.FC = () => {
   };
 
   return (
-    <div className="text-left select-none flex flex-col gap-6 max-w-4xl mx-auto">
+    <div className="text-left select-none flex flex-col gap-6 w-full max-w-4xl mx-auto flex-1 min-h-0">
       {/* Header */}
       <div>
         <h1 className="text-xs font-bold uppercase tracking-widest text-gold-700">Identity & Access Management</h1>
         <h2 className="text-2xl font-bold text-cortex-dark mt-1">User Account Profile</h2>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 min-w-0">
         {/* Left: User Card */}
-        <div className="md:col-span-4 flex flex-col gap-4">
-          <div className="bg-white border border-cortex-border rounded-2xl p-6 shadow-premium flex flex-col items-center text-center">
+        <div className="md:col-span-4 flex flex-col gap-4 min-w-0">
+          <div className="bg-white border border-cortex-border rounded-2xl p-6 shadow-premium flex flex-col items-center text-center min-w-0">
             <div className="w-20 h-20 rounded-full bg-gold-50 border-2 border-gold-300 flex items-center justify-center text-gold-800 font-bold text-2xl font-mono mb-4">
               {currentUser?.username.substring(0, 2).toUpperCase() || 'CC'}
             </div>
@@ -72,7 +72,7 @@ export const Profile: React.FC = () => {
         </div>
 
         {/* Right: Update Form */}
-        <div className="md:col-span-8 bg-white border border-cortex-border rounded-2xl p-6 shadow-premium">
+        <div className="md:col-span-8 bg-white border border-cortex-border rounded-2xl p-6 shadow-premium min-w-0">
           <h3 className="text-sm font-bold text-cortex-dark uppercase tracking-wider pb-3 border-b border-cortex-border/60 mb-5">
             Modify Personnel Credentials
           </h3>
@@ -112,8 +112,8 @@ export const Profile: React.FC = () => {
               <span className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block mb-3">
                 Update Password (Optional)
               </span>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+                <div className="min-w-0">
                   <label className="text-[10px] text-cortex-gray block mb-1">Current Password</label>
                   <input
                     type="password"
@@ -123,7 +123,7 @@ export const Profile: React.FC = () => {
                     className="w-full px-3.5 py-2 border border-cortex-border rounded-xl text-xs text-cortex-dark outline-none focus:border-gold-500 font-mono"
                   />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-[10px] text-cortex-gray block mb-1">New Password</label>
                   <input
                     type="password"

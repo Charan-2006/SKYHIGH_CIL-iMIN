@@ -5,9 +5,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Laboratory from './pages/Laboratory';
-import Processing from './pages/Processing';
-import Prediction from './pages/Prediction';
+import CoalQualityEvaluation from './pages/CoalQualityEvaluation';
 import Explainability from './pages/Explainability';
 import Confidence from './pages/Confidence';
 import Blend from './pages/Blend';
@@ -18,6 +16,7 @@ import History from './pages/History';
 import Settings from './pages/Settings';
 import ModelPerformance from './pages/ModelPerformance';
 import ScenarioSimulator from './pages/ScenarioSimulator';
+import DispatchPlanning from './pages/DispatchPlanning';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 
@@ -33,14 +32,15 @@ export const App: React.FC = () => {
           {/* Enterprise Application (Inside Dashboard Layout) */}
           <Route element={<DashboardLayout />}>
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="laboratory" element={<Laboratory />} />
-            <Route path="processing" element={<Processing />} />
-            <Route path="prediction" element={<Prediction />} />
+            <Route path="evaluation" element={<CoalQualityEvaluation />} />
+            <Route path="prediction" element={<Navigate to="/evaluation" replace />} />
+            <Route path="laboratory" element={<Navigate to="/evaluation" replace />} />
             <Route path="explainability" element={<Explainability />} />
             <Route path="confidence" element={<Confidence />} />
             <Route path="blend" element={<Blend />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="scenarios" element={<ScenarioSimulator />} />
+            <Route path="dispatch" element={<DispatchPlanning />} />
             <Route path="models" element={<ModelPerformance />} />
             <Route path="map" element={<MapPage />} />
             <Route path="report" element={<Report />} />

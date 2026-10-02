@@ -4,8 +4,6 @@ import {
   LayoutGrid, 
   LineChart, 
   BrainCircuit, 
-  ShieldAlert, 
-  Truck, 
   Settings, 
   HelpCircle, 
   Map, 
@@ -14,17 +12,17 @@ import {
   Sliders,
   Cpu,
   Layers,
-  User,
-  FlaskConical
+  Truck,
+  User
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutGrid },
-    { name: 'Coal Quality AI', path: '/prediction', icon: BrainCircuit },
-    { name: 'Lab & Verification', path: '/laboratory', icon: FlaskConical },
+    { name: 'Coal Quality Evaluation', path: '/evaluation', icon: BrainCircuit },
     { name: 'Blend Optimizer', path: '/blend', icon: Sliders },
     { name: 'Scenario Simulator', path: '/scenarios', icon: Layers },
+    { name: 'Dispatch Planning', path: '/dispatch', icon: Truck },
     { name: 'Model Governance', path: '/models', icon: Cpu },
     { name: 'Mine Analytics', path: '/analytics', icon: LineChart },
     { name: 'India Mine Map', path: '/map', icon: Map },
@@ -50,17 +48,21 @@ export const Sidebar: React.FC = () => {
     <aside className="w-64 bg-white border-r border-cortex-border h-screen flex flex-col justify-between select-none">
       {/* Brand Header */}
       <div>
-        <div className="p-6 border-b border-cortex-border">
-          <NavLink to="/dashboard" className="flex flex-col">
-            <span className="text-xl font-bold text-gold-900 tracking-tight leading-none">
-              CarbonCortex
-            </span>
-            <span className="text-[10px] text-cortex-light-gray uppercase tracking-widest font-semibold mt-1">
-              Institutional Alpha
-            </span>
-            <span className="text-[8px] text-cortex-light-gray/60 font-mono mt-0.5">
-              System v4.2.0
-            </span>
+        <div className="px-5 py-4 border-b border-cortex-border">
+          <NavLink to="/dashboard" className="flex items-center gap-3.5 group">
+            <img 
+              src="/logo.png" 
+              alt="CarbonCortex Logo" 
+              className="w-12 h-12 rounded-xl object-contain shrink-0 group-hover:scale-105 transition-transform" 
+            />
+            <div className="flex flex-col">
+              <span className="text-xl font-bold text-gold-900 tracking-tight leading-tight">
+                CarbonCortex
+              </span>
+              <span className="text-[9px] uppercase font-semibold tracking-wider text-cortex-gray">
+                Decision Intelligence
+              </span>
+            </div>
           </NavLink>
         </div>
 
@@ -76,16 +78,6 @@ export const Sidebar: React.FC = () => {
               <span>{item.name}</span>
             </NavLink>
           ))}
-          
-          {/* Static design links from slides */}
-          <div className="flex items-center gap-3.5 px-4 py-3 rounded-lg text-sm font-semibold text-cortex-light-gray cursor-not-allowed border-l-4 border-transparent">
-            <ShieldAlert className="w-5 h-5 opacity-50" />
-            <span>Operational Safety</span>
-          </div>
-          <div className="flex items-center gap-3.5 px-4 py-3 rounded-lg text-sm font-semibold text-cortex-light-gray cursor-not-allowed border-l-4 border-transparent">
-            <Truck className="w-5 h-5 opacity-50" />
-            <span>Fleet Control</span>
-          </div>
         </nav>
       </div>
 

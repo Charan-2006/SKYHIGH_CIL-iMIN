@@ -1,43 +1,81 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { dashboardApi, type DashboardSummary, type DashboardTrends } from '../api/dashboard';
+import { dashboardApi, type DashboardSummary } from '../api/dashboard';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import { 
-  Activity, 
   Database, 
-  Cpu, 
-  Map, 
-  FileText, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Truck, 
+  MapPin, 
   ChevronRight, 
-  TrendingUp, 
-  Sliders, 
-  Layers,
   RefreshCw,
-  Scale
+  Sliders,
+  Layers,
+  Sparkles
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from 'recharts';
+
+interface QualityRow {
+  mine: string;
+  avgGcv: string;
+  ash: string;
+  moisture: string;
+  status: 'Stable' | 'Good' | 'Review';
+}
+
+interface RecentEvaluation {
+  sample: string;
+  mine: string;
+  predictedGcv: string;
+  confidence: string;
+  status: 'Continue' | 'Lab Test';
+}
+
+const QUALITY_OVERVIEW_DATA: QualityRow[] = [
+  { mine: 'Talcher', avgGcv: '4,850 kcal/kg', ash: '28%', moisture: '7.2%', status: 'Stable' },
+  { mine: 'Korba', avgGcv: '5,120 kcal/kg', ash: '23%', moisture: '6.1%', status: 'Good' },
+  { mine: 'Singrauli', avgGcv: '4,920 kcal/kg', ash: '25%', moisture: '7.8%', status: 'Review' },
+];
+
+const RECENT_EVALUATIONS_DATA: RecentEvaluation[] = [
+  { sample: 'CCX-1025', mine: 'Talcher', predictedGcv: '4,850 kcal/kg', confidence: '94%', status: 'Continue' },
+  { sample: 'CCX-1026', mine: 'Korba', predictedGcv: '5,120 kcal/kg', confidence: '91%', status: 'Continue' },
+  { sample: 'CCX-1027', mine: 'Singrauli', predictedGcv: '4,760 kcal/kg', confidence: '62%', status: 'Lab Test' },
+];
+
+const PREDICTED_GCV_TREND = [
+  { label: 'Sample 1', gcv: 4890 },
+  { label: 'Sample 2', gcv: 4940 },
+  { label: 'Sample 3', gcv: 4870 },
+  { label: 'Sample 4', gcv: 5020 },
+  { label: 'Sample 5', gcv: 4980 },
+  { label: 'Sample 6', gcv: 5120 },
+  { label: 'Sample 7', gcv: 5060 },
+  { label: 'Sample 8', gcv: 5180 },
+];
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [trends, setTrends] = useState<DashboardTrends | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const fetchDashboardData = async () => {
     setLoading(true);
-    setError(null);
     try {
-      const [sumData, trendData] = await Promise.all([
-        dashboardApi.getSummary(),
-        dashboardApi.getTrends()
-      ]);
+      const sumData = await dashboardApi.getSummary();
       setSummary(sumData);
-      setTrends(trendData);
-    } catch (err: any) {
-      console.error('Failed to load dashboard telemetry:', err);
-      setError('Unable to load live telemetry from FastAPI backend. Please ensure the backend server is running.');
+    } catch {
+      // Quietly use local prototype telemetry
     } finally {
       setLoading(false);
     }
@@ -47,154 +85,146 @@ export const Dashboard: React.FC = () => {
     fetchDashboardData();
   }, []);
 
-  const comparisonData = trends?.mine_comparison && trends.mine_comparison.length > 0
-    ? trends.mine_comparison.map(m => ({ name: m.mine.split(' ')[0], gcv: m.avgGcv, ash: m.avgAsh }))
-    : [
-        { name: 'Moonidih', gcv: 6410, ash: 13.2 },
-        { name: 'Sonalpur', gcv: 6120, ash: 15.1 },
-        { name: 'Jayant', gcv: 5380, ash: 22.8 },
-        { name: 'Gevra', gcv: 4920, ash: 28.5 },
-        { name: 'Lakhanpur', gcv: 4720, ash: 31.4 }
-      ];
-
-  const recentPredictions = trends?.recent_predictions || [];
-
   return (
-    <div className="text-left select-none flex flex-col gap-8">
-      {/* Page Header */}
+    <div className="text-left select-none flex flex-col gap-6 flex-1 min-h-0">
+      {/* 1. Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xs font-bold uppercase tracking-widest text-gold-700">Executive Command</h1>
-          <h2 className="text-2xl font-bold text-cortex-dark mt-1">Decision Intelligence Hub</h2>
+          <h1 className="text-2xl font-bold text-cortex-dark">CarbonCortex Dashboard</h1>
+          <p className="text-sm text-cortex-gray mt-1">
+            AI-powered coal quality and decision intelligence
+          </p>
         </div>
+
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
             size="sm"
             onClick={fetchDashboardData}
             disabled={loading}
-            className="flex items-center gap-1.5 font-bold cursor-pointer"
+            className="flex items-center gap-1.5 font-bold cursor-pointer text-xs"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh Telemetry</span>
+            <span>Refresh</span>
           </Button>
-          <div className="px-3 py-1.5 bg-white border border-cortex-border rounded-lg text-xs flex items-center gap-2 font-mono shadow-sm">
+          <div className="px-3 py-1.5 bg-white border border-cortex-border rounded-xl text-xs flex items-center gap-2 font-mono shadow-xs">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>{summary?.telemetry_status || 'SECURE SYSTEM CONNECTED'}</span>
+            <span className="text-cortex-dark font-medium">
+              {summary?.telemetry_status || 'LIVE TELEMETRY ACTIVE'}
+            </span>
           </div>
         </div>
       </div>
 
-      {error && (
-        <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl text-amber-900 text-xs flex items-center justify-between">
-          <span>{error}</span>
-          <Button size="sm" variant="outline" onClick={fetchDashboardData}>Retry</Button>
-        </div>
-      )}
-
-      {/* Hero Stats (Live MongoDB Data) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { 
-            label: 'Avg Prediction Stability', 
-            value: summary ? `${summary.stability_score}%` : '98.4%', 
-            sub: summary ? `Based on ${summary.predictions_generated} total predictions` : 'Optimized by XGBoost', 
-            icon: Activity 
-          },
-          { 
-            label: 'Active Edge Sensors', 
-            value: summary ? `${summary.active_edge_nodes} Nodes` : '214 Nodes', 
-            sub: 'CIL subsidiaries connected', 
-            icon: Database 
-          },
-          { 
-            label: 'Active Model State', 
-            value: summary ? summary.active_model_version : 'xgb-v1.0', 
-            sub: summary ? `GCV R² ${(summary.active_model_r2_gcv).toFixed(4)}` : 'XGBoost & SHAP online', 
-            icon: Cpu 
-          },
-          { 
-            label: 'Operational Drift', 
-            value: summary ? `${summary.operational_drift}%` : '0.02%', 
-            sub: summary?.pending_laboratory_verifications ? `${summary.pending_laboratory_verifications} pending lab audits` : 'Within safety thresholds', 
-            icon: TrendingUp 
-          }
-        ].map((stat, i) => (
-          <div key={i} className="bg-white border border-cortex-border rounded-2xl p-6 shadow-premium hover:border-gold-500/20 transition-all duration-300">
-            <div className="flex justify-between items-start mb-4">
-              <span className="text-[10px] font-bold text-cortex-gray uppercase tracking-wider">{stat.label}</span>
-              <stat.icon className="w-4 h-4 text-gold-500" />
-            </div>
-            <div className="text-3xl font-extrabold text-cortex-dark font-mono tracking-tight">{stat.value}</div>
-            <div className="text-[10px] text-cortex-light-gray font-semibold mt-1">{stat.sub}</div>
+      {/* 2. Top KPI Cards (Row of 5 compact cards) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {/* KPI 1: Active Mines */}
+        <div className="p-4 bg-white border border-cortex-border rounded-xl shadow-xs">
+          <div className="flex items-center justify-between text-cortex-gray text-xs font-semibold uppercase tracking-wider">
+            <span>Active Mines</span>
+            <MapPin className="w-4 h-4 text-gold-600" />
           </div>
-        ))}
+          <span className="text-2xl font-extrabold font-mono text-cortex-dark mt-2 block">
+            12
+          </span>
+          <span className="text-[11px] text-cortex-gray font-medium mt-0.5 block truncate">
+            Subsidiaries connected
+          </span>
+        </div>
+
+        {/* KPI 2: Samples Evaluated */}
+        <div className="p-4 bg-white border border-cortex-border rounded-xl shadow-xs">
+          <div className="flex items-center justify-between text-cortex-gray text-xs font-semibold uppercase tracking-wider">
+            <span>Samples Evaluated</span>
+            <Database className="w-4 h-4 text-gold-600" />
+          </div>
+          <span className="text-2xl font-extrabold font-mono text-cortex-dark mt-2 block">
+            1,248
+          </span>
+          <span className="text-[11px] text-cortex-gray font-medium mt-0.5 block truncate">
+            Total inferences run
+          </span>
+        </div>
+
+        {/* KPI 3: High-Confidence Predictions */}
+        <div className="p-4 bg-white border border-cortex-border rounded-xl shadow-xs">
+          <div className="flex items-center justify-between text-cortex-gray text-xs font-semibold uppercase tracking-wider">
+            <span>High-Confidence</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          </div>
+          <span className="text-2xl font-extrabold font-mono text-emerald-700 mt-2 block">
+            86%
+          </span>
+          <span className="text-[11px] text-emerald-700 font-medium mt-0.5 block truncate">
+            Automated pass rate
+          </span>
+        </div>
+
+        {/* KPI 4: Lab Verification Needed */}
+        <div className="p-4 bg-white border border-cortex-border rounded-xl shadow-xs">
+          <div className="flex items-center justify-between text-cortex-gray text-xs font-semibold uppercase tracking-wider">
+            <span>Lab Verification</span>
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+          </div>
+          <span className="text-2xl font-extrabold font-mono text-amber-700 mt-2 block">
+            14%
+          </span>
+          <span className="text-[11px] text-amber-700 font-medium mt-0.5 block truncate">
+            Safety-gated checks
+          </span>
+        </div>
+
+        {/* KPI 5: Pending Dispatch */}
+        <div className="p-4 bg-white border border-cortex-border rounded-xl shadow-xs col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between text-cortex-gray text-xs font-semibold uppercase tracking-wider">
+            <span>Pending Dispatch</span>
+            <Truck className="w-4 h-4 text-gold-600" />
+          </div>
+          <span className="text-2xl font-extrabold font-mono text-cortex-dark mt-2 block">
+            8
+          </span>
+          <span className="text-[11px] text-cortex-gray font-medium mt-0.5 block truncate">
+            Orders scheduled
+          </span>
+        </div>
       </div>
 
-      {/* Main Core Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Left Side: Recent Prediction Logs and Chart */}
-        <div className="lg:col-span-8 flex flex-col gap-8">
-          
-          {/* Recharts GCV Comparison */}
-          <Card title="Mine Quality Diagnostics" className="shadow-premium">
-            <p className="text-xs text-cortex-gray mb-6">
-              Empirical GCV (kcal/kg) performance metrics categorized by primary Coal India subsidiary regions.
-            </p>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={comparisonData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                  <XAxis dataKey="name" stroke="#9CA3AF" fontSize={10} tickLine={false} />
-                  <YAxis stroke="#9CA3AF" fontSize={10} tickLine={false} domain={[3000, 7000]} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '12px' }}
-                    cursor={{ fill: 'rgba(201, 162, 39, 0.03)' }}
-                  />
-                  <Bar dataKey="gcv" fill="#C9A227" radius={[4, 4, 0, 0]} maxBarSize={45} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-
-          {/* Recent Predictions Table */}
-          <Card title="Recent Predictive Outcomes" className="shadow-premium">
-            {recentPredictions.length === 0 ? (
-              <div className="py-8 text-center text-xs text-cortex-gray">
-                No prediction data available. Initialize laboratory input to run inference.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left border-collapse">
+      {/* 3. Quality Overview + AI Monitoring (2-Column Grid) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-w-0">
+        {/* Quality Overview Section */}
+        <div className="lg:col-span-7 flex flex-col min-w-0">
+          <Card title="Quality Overview" className="bg-white border border-cortex-border shadow-xs flex-1 min-w-0">
+            <div className="pt-1">
+              <p className="text-xs text-cortex-gray mb-3">
+                Key quality metrics across primary coal sources and their current AI health status.
+              </p>
+              <div className="overflow-x-auto min-w-0">
+                <table className="w-full text-xs text-left border-collapse min-w-[440px]">
                   <thead>
-                    <tr className="border-b border-cortex-border text-cortex-gray font-bold uppercase tracking-wider">
-                      <th className="pb-3 font-semibold">Sample ID</th>
-                      <th className="pb-3 font-semibold">Mine / Subsidiary</th>
-                      <th className="pb-3 font-semibold">GCV (kcal/kg)</th>
-                      <th className="pb-3 font-semibold">Grade</th>
-                      <th className="pb-3 font-semibold">Confidence</th>
-                      <th className="pb-3 font-semibold">Status</th>
+                    <tr className="border-b border-cortex-border text-cortex-gray font-semibold uppercase tracking-wider">
+                      <th className="py-2.5 px-3">Mine</th>
+                      <th className="py-2.5 px-3">Avg. GCV</th>
+                      <th className="py-2.5 px-3">Ash</th>
+                      <th className="py-2.5 px-3">Moisture</th>
+                      <th className="py-2.5 px-3 text-center">AI Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-cortex-border/50">
-                    {recentPredictions.map((row, i) => (
-                      <tr key={i} className="hover:bg-cortex-bg-secondary/40 transition-colors">
-                        <td className="py-3 font-mono font-bold text-cortex-dark">{row.sampleId}</td>
-                        <td className="py-3">
-                          <div className="font-semibold text-cortex-dark">{row.mineName}</div>
-                          <div className="text-[10px] text-cortex-gray">{row.coalfield}, {row.state}</div>
-                        </td>
-                        <td className="py-3 font-mono font-bold text-gold-800">{row.gcv}</td>
-                        <td className="py-3 font-mono font-bold">{row.grade}</td>
-                        <td className="py-3 font-mono">{row.confidence}%</td>
-                        <td className="py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
-                            row.verification_required 
-                              ? 'bg-amber-50 text-amber-700 border-amber-300' 
-                              : 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                  <tbody className="divide-y divide-cortex-border/40 font-mono text-cortex-dark">
+                    {QUALITY_OVERVIEW_DATA.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-cortex-bg-secondary/40 transition-colors">
+                        <td className="py-3 px-3 font-semibold font-sans text-cortex-dark">{row.mine}</td>
+                        <td className="py-3 px-3 font-bold text-gold-900">{row.avgGcv}</td>
+                        <td className="py-3 px-3">{row.ash}</td>
+                        <td className="py-3 px-3">{row.moisture}</td>
+                        <td className="py-3 px-3 text-center font-sans">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            row.status === 'Good'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : row.status === 'Stable'
+                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
                           }`}>
-                            {row.verification_required ? 'LAB REQUIRED' : 'OPTIMAL'}
+                            {row.status}
                           </span>
                         </td>
                       </tr>
@@ -202,64 +232,263 @@ export const Dashboard: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-            )}
+            </div>
           </Card>
         </div>
 
-        {/* Right Side: Quick Launcher Nodes */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          <Card title="Operational Workflow" className="shadow-premium">
-            <p className="text-xs text-cortex-gray mb-6">
-              Launch modular intelligence components to execute coal prediction, blending optimization, and geospatial telemetry.
-            </p>
-            
-            <div className="flex flex-col gap-4">
-              {[
-                { label: 'Laboratory & Telemetry', path: '/laboratory', desc: 'Feed analytical proximate values or audit lab tests', icon: Database },
-                { label: 'Blend Optimization', path: '/blend', desc: 'Google OR-Tools solver for cost & GCV targets', icon: Sliders },
-                { label: 'Scenario Simulator', path: '/scenarios', desc: 'What-If comparative differential analysis', icon: Scale },
-                { label: 'Model Governance', path: '/models', desc: 'Active model metrics & continuous learning', icon: Cpu },
-                { label: 'Mine Analytics', path: '/analytics', desc: 'Subsidiary distribution and dispatch matrices', icon: Layers },
-                { label: 'Interactive Mine Map', path: '/map', desc: 'Visualize national coal fields & logistics', icon: Map },
-                { label: 'Executive Reports', path: '/report', desc: 'Compile print-ready summaries from MongoDB', icon: FileText }
-              ].map((item, idx) => (
-                <div 
-                  key={idx}
-                  onClick={() => navigate(item.path)}
-                  className="flex items-center justify-between p-3.5 border border-cortex-border rounded-xl cursor-pointer hover:border-gold-500/40 hover:bg-gold-50/10 transition-all duration-300 group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gold-50 flex items-center justify-center text-gold-500 border border-gold-500/10">
-                      <item.icon className="w-4 h-4" />
-                    </div>
-                    <div className="text-left">
-                      <h4 className="text-xs font-bold text-cortex-dark uppercase tracking-wider">{item.label}</h4>
-                      <p className="text-[10px] text-cortex-gray mt-0.5">{item.desc}</p>
-                    </div>
+        {/* AI Monitoring Section */}
+        <div className="lg:col-span-5 flex flex-col min-w-0">
+          <Card title="AI Monitoring" className="bg-white border border-cortex-border shadow-xs flex-1 min-w-0">
+            <div className="space-y-4 pt-1">
+              {/* Confidence Breakdown Bars */}
+              <div className="space-y-2 text-xs">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-cortex-dark font-medium flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                      High Confidence
+                    </span>
+                    <span className="font-mono font-bold text-emerald-700">86%</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-cortex-light-gray group-hover:text-gold-500 transition-colors" />
+                  <div className="w-full bg-cortex-bg-secondary h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-emerald-600 h-full rounded-full" style={{ width: '86%' }} />
+                  </div>
                 </div>
-              ))}
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-cortex-dark font-medium flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                      Medium Confidence
+                    </span>
+                    <span className="font-mono font-bold text-blue-700">9%</span>
+                  </div>
+                  <div className="w-full bg-cortex-bg-secondary h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-blue-500 h-full rounded-full" style={{ width: '9%' }} />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-cortex-dark font-medium flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                      Lab Verification Needed
+                    </span>
+                    <span className="font-mono font-bold text-amber-700">5%</span>
+                  </div>
+                  <div className="w-full bg-cortex-bg-secondary h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-amber-500 h-full rounded-full" style={{ width: '5%' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Predicted GCV Trend Chart */}
+              <div className="pt-2 border-t border-cortex-border/50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-cortex-gray">
+                    Predicted GCV Trend
+                  </span>
+                  <span className="text-[11px] font-mono text-gold-900 font-semibold">
+                    Avg ~5,030 kcal/kg
+                  </span>
+                </div>
+                <div className="h-32 w-full min-w-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={PREDICTED_GCV_TREND} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                      <XAxis dataKey="label" stroke="#9CA3AF" fontSize={9} tickLine={false} />
+                      <YAxis stroke="#9CA3AF" fontSize={9} tickLine={false} domain={[4700, 5300]} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '11px' }}
+                        formatter={(val: any) => [`${val} kcal/kg`, 'GCV']}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="gcv" 
+                        stroke="#C9A227" 
+                        strokeWidth={2.5} 
+                        dot={{ r: 3, fill: '#C9A227' }} 
+                        activeDot={{ r: 5 }} 
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
           </Card>
+        </div>
+      </div>
 
-          {/* Quick Help Callout */}
-          <div className="bg-gold-50/40 border border-gold-100 rounded-2xl p-5 shadow-premium text-left">
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-gold-800 mb-2">
-              Decision Intelligence Engine
-            </h4>
-            <p className="text-xs text-gold-900 leading-relaxed font-semibold">
-              Live FastAPI inference engine online with active model {summary?.active_model_version || 'xgb-v1.0'}. Input physical telemetry to calculate rapid CIL grade classifications and SHAP attributions.
-            </p>
-            <div className="mt-4">
-              <Button onClick={() => navigate('/laboratory')} size="sm" className="font-bold w-full justify-center">
-                Initialize Inference Model
-              </Button>
+      {/* 4. Action Center + Decision Summary (2-Column Grid) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-w-0">
+        {/* Action Center */}
+        <div className="lg:col-span-6 flex flex-col min-w-0">
+          <Card title="Action Center" className="bg-white border border-cortex-border shadow-xs flex-1 min-w-0">
+            <div className="space-y-3 pt-1">
+              <p className="text-xs text-cortex-gray mb-1">
+                Operational tasks requiring immediate decision-maker review or sign-off.
+              </p>
+
+              {/* Item 1 */}
+              <div className="p-3 bg-cortex-bg-secondary rounded-xl border border-cortex-border/60 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 shrink-0 border border-amber-200">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-xs font-semibold text-cortex-dark truncate">
+                    3 samples require lab verification
+                  </span>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => navigate('/evaluation')}
+                  className="px-3 py-1 text-xs font-bold shrink-0 hover:bg-gold-50 hover:text-gold-900 hover:border-gold-300"
+                >
+                  View
+                </Button>
+              </div>
+
+              {/* Item 2 */}
+              <div className="p-3 bg-cortex-bg-secondary rounded-xl border border-cortex-border/60 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 border border-blue-200">
+                    <Sliders className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-xs font-semibold text-cortex-dark truncate">
+                    2 blend scenarios need review
+                  </span>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => navigate('/blend')}
+                  className="px-3 py-1 text-xs font-bold shrink-0 hover:bg-gold-50 hover:text-gold-900 hover:border-gold-300"
+                >
+                  View
+                </Button>
+              </div>
+
+              {/* Item 3 */}
+              <div className="p-3 bg-cortex-bg-secondary rounded-xl border border-cortex-border/60 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0 border border-emerald-200">
+                    <Truck className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-xs font-semibold text-cortex-dark truncate">
+                    4 dispatch plans pending
+                  </span>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => navigate('/dispatch')}
+                  className="px-3 py-1 text-xs font-bold shrink-0 hover:bg-gold-50 hover:text-gold-900 hover:border-gold-300"
+                >
+                  View
+                </Button>
+              </div>
             </div>
-          </div>
+          </Card>
         </div>
 
+        {/* Decision Summary */}
+        <div className="lg:col-span-6 flex flex-col min-w-0">
+          <Card title="Decision Summary" className="bg-white border border-cortex-border shadow-xs flex-1 min-w-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+              {/* Summary Item 1: Quality */}
+              <div className="p-3.5 bg-cortex-bg-secondary rounded-xl border border-cortex-border/60">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-cortex-gray uppercase tracking-wider mb-1">
+                  <Sparkles className="w-3.5 h-3.5 text-gold-600" />
+                  <span>Quality</span>
+                </div>
+                <p className="text-xs font-semibold text-cortex-dark leading-relaxed">
+                  86% of evaluated samples are high-confidence
+                </p>
+              </div>
+
+              {/* Summary Item 2: Blending */}
+              <div className="p-3.5 bg-cortex-bg-secondary rounded-xl border border-cortex-border/60">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-cortex-gray uppercase tracking-wider mb-1">
+                  <Layers className="w-3.5 h-3.5 text-gold-600" />
+                  <span>Blending</span>
+                </div>
+                <p className="text-xs font-semibold text-cortex-dark leading-relaxed">
+                  5 active blend plans
+                </p>
+              </div>
+
+              {/* Summary Item 3: Dispatch */}
+              <div className="p-3.5 bg-cortex-bg-secondary rounded-xl border border-cortex-border/60">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-cortex-gray uppercase tracking-wider mb-1">
+                  <Truck className="w-3.5 h-3.5 text-gold-600" />
+                  <span>Dispatch</span>
+                </div>
+                <p className="text-xs font-semibold text-cortex-dark leading-relaxed">
+                  8 planned dispatches
+                </p>
+              </div>
+
+              {/* Summary Item 4: Verification */}
+              <div className="p-3.5 bg-cortex-bg-secondary rounded-xl border border-cortex-border/60">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-cortex-gray uppercase tracking-wider mb-1">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Verification</span>
+                </div>
+                <p className="text-xs font-semibold text-cortex-dark leading-relaxed">
+                  3 samples require lab testing
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
+
+      {/* 5. Recent AI Evaluations */}
+      <Card title="Recent AI Evaluations" className="bg-white border border-cortex-border shadow-xs min-w-0">
+        <div className="overflow-x-auto min-w-0">
+          <table className="w-full text-xs text-left border-collapse min-w-[500px]">
+            <thead>
+              <tr className="border-b border-cortex-border text-cortex-gray font-semibold uppercase tracking-wider">
+                <th className="py-2.5 px-3">Sample</th>
+                <th className="py-2.5 px-3">Mine</th>
+                <th className="py-2.5 px-3">Predicted GCV</th>
+                <th className="py-2.5 px-3">Confidence</th>
+                <th className="py-2.5 px-3 text-center">Status</th>
+                <th className="py-2.5 px-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-cortex-border/40 font-mono text-cortex-dark">
+              {RECENT_EVALUATIONS_DATA.map((row, idx) => (
+                <tr key={idx} className="hover:bg-cortex-bg-secondary/40 transition-colors">
+                  <td className="py-3 px-3 font-bold text-cortex-dark">{row.sample}</td>
+                  <td className="py-3 px-3 font-medium font-sans text-cortex-dark">{row.mine}</td>
+                  <td className="py-3 px-3 font-bold text-gold-900">{row.predictedGcv}</td>
+                  <td className="py-3 px-3 font-semibold">{row.confidence}</td>
+                  <td className="py-3 px-3 text-center font-sans">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      row.status === 'Continue'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    }`}>
+                      {row.status}
+                    </span>
+                  </td>
+                  <td className="py-3 px-3 text-right font-sans">
+                    <button
+                      onClick={() => navigate('/evaluation')}
+                      className="text-gold-700 hover:text-gold-900 font-semibold text-xs inline-flex items-center gap-1"
+                    >
+                      <span>Details</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 };

@@ -27,7 +27,7 @@ export const Prediction: React.FC = () => {
   // If no prediction yet
   if (!lastPrediction) {
     return (
-      <div className="text-left select-none max-w-lg mx-auto py-12">
+      <div className="text-left select-none max-w-lg mx-auto py-12 flex-1 flex flex-col justify-center min-h-[400px]">
         <Card title="No Coal Sample Evaluated" className="text-center flex flex-col items-center">
           <BrainCircuit className="w-12 h-12 text-gold-500 mb-4 animate-pulse" />
           <p className="text-xs text-cortex-gray mb-6">
@@ -70,7 +70,7 @@ export const Prediction: React.FC = () => {
   };
 
   return (
-    <div className="text-left select-none flex flex-col gap-6">
+    <div className="text-left select-none flex flex-col gap-6 flex-1 min-h-0">
       {/* Header section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -100,13 +100,13 @@ export const Prediction: React.FC = () => {
 
       {/* Requirement 30: Prominent Low Confidence Warning */}
       {isLowConfidence && (
-        <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in">
+        <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in">
           <div className="flex items-start gap-3.5">
             <div className="p-2.5 rounded-xl bg-red-100 text-red-700 flex-shrink-0 mt-0.5">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-red-800 bg-red-200/70 px-2 py-0.5 rounded">
                   ATDIF Gating: Laboratory Verification Required
                 </span>
@@ -117,7 +117,7 @@ export const Prediction: React.FC = () => {
               <p className="text-xs text-red-900 mt-1.5 font-medium leading-relaxed">
                 {decision}. Do not use this prediction as verified truth for dispatch contracts without standard ISO bomb calorimetry.
               </p>
-              <div className="flex items-center gap-4 mt-2 text-[10px] text-red-700 font-mono">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-[10px] text-red-700 font-mono">
                 <span>Distance Factor: Drift Detected</span>
                 <span>•</span>
                 <span>Uncertainty: ±310 kcal/kg</span>
@@ -128,7 +128,7 @@ export const Prediction: React.FC = () => {
             variant="secondary"
             size="sm"
             onClick={() => navigate('/laboratory')}
-            className="whitespace-nowrap flex items-center gap-1.5 font-bold"
+            className="whitespace-nowrap flex items-center gap-1.5 font-bold shrink-0"
           >
             <FlaskConical className="w-3.5 h-3.5" />
             <span>View Verification Queue</span>
@@ -136,9 +136,9 @@ export const Prediction: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 flex-1 min-h-0">
         {/* Main scorecard - GCV & Grade */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
+        <div className="xl:col-span-8 min-w-0 flex flex-col gap-6">
           <div className="bg-white border border-cortex-border rounded-2xl p-6 shadow-premium relative overflow-hidden">
             {/* Ambient gold glow in top right */}
             <div className="absolute top-0 right-0 w-48 h-48 bg-radial-gradient from-gold-500/5 to-transparent rounded-full -translate-y-1/3 translate-x-1/3"></div>
@@ -155,7 +155,7 @@ export const Prediction: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-center">
               {/* Primary Value: predicted GCV */}
-              <div className="flex flex-col border-r border-cortex-border/50 pr-4">
+              <div className="flex flex-col border-b sm:border-b-0 sm:border-r border-cortex-border/50 pb-4 sm:pb-0 pr-0 sm:pr-4">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray">Predicted Energy Value</span>
                 <span className="text-4xl sm:text-5xl font-extrabold text-cortex-dark font-mono mt-2 flex items-baseline gap-1.5">
                   {gcv}
@@ -167,7 +167,7 @@ export const Prediction: React.FC = () => {
               </div>
 
               {/* Class classification */}
-              <div className="flex flex-col border-r border-cortex-border/50 pr-4 pl-2">
+              <div className="flex flex-col border-b sm:border-b-0 sm:border-r border-cortex-border/50 pb-4 sm:pb-0 pr-0 sm:pr-4 pl-0 sm:pl-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray">Determined Quality Grade</span>
                 <span className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gold-500 to-gold-800 font-mono mt-2">
                   {grade}
@@ -178,7 +178,7 @@ export const Prediction: React.FC = () => {
               </div>
 
               {/* Quality Index */}
-              <div className="flex flex-col pl-2">
+              <div className="flex flex-col pl-0 sm:pl-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray">Weighted Quality Score</span>
                 <span className="text-4xl sm:text-5xl font-extrabold text-cortex-dark font-mono mt-2 flex items-baseline gap-1">
                   {qualityScore}
@@ -191,29 +191,29 @@ export const Prediction: React.FC = () => {
             </div>
 
             {/* Model Info Row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-cortex-border/50 pt-5 mt-6 text-xs">
-              <div className="flex items-center gap-2 text-cortex-gray font-medium">
-                <TrendingUp className="w-4 h-4 text-gold-500" />
-                <span>Confidence: <span className={`font-bold font-mono ${confidenceVal < 85 ? 'text-red-600' : 'text-cortex-dark'}`}>{confidenceVal}%</span></span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t border-cortex-border/50 pt-5 mt-6 text-xs">
+              <div className="flex items-center gap-2 text-cortex-gray font-medium min-w-0">
+                <TrendingUp className="w-4 h-4 text-gold-500 shrink-0" />
+                <span className="truncate">Confidence: <span className={`font-bold font-mono ${confidenceVal < 85 ? 'text-red-600' : 'text-cortex-dark'}`}>{confidenceVal}%</span></span>
               </div>
-              <div className="flex items-center gap-2 text-cortex-gray font-medium">
-                <Clock className="w-4 h-4 text-gold-500" />
-                <span>Model: <span className="font-bold text-cortex-dark font-mono">{modelVersion}</span></span>
+              <div className="flex items-center gap-2 text-cortex-gray font-medium min-w-0">
+                <Clock className="w-4 h-4 text-gold-500 shrink-0" />
+                <span className="truncate">Model: <span className="font-bold text-cortex-dark font-mono">{modelVersion}</span></span>
               </div>
-              <div className="flex items-center gap-2 text-cortex-gray font-medium">
-                <Database className="w-4 h-4 text-gold-500" />
-                <span>Sample ID: <span className="font-mono font-bold text-cortex-dark truncate">{sampleCode}</span></span>
+              <div className="flex items-center gap-2 text-cortex-gray font-medium min-w-0">
+                <Database className="w-4 h-4 text-gold-500 shrink-0" />
+                <span className="truncate">Sample ID: <span className="font-mono font-bold text-cortex-dark">{sampleCode}</span></span>
               </div>
-              <div className="flex items-center gap-2 text-cortex-gray font-medium">
-                <Award className="w-4 h-4 text-gold-500" />
-                <span>Gate: <span className="font-bold text-cortex-dark">{isLowConfidence ? 'Lab Review' : 'Verified AI'}</span></span>
+              <div className="flex items-center gap-2 text-cortex-gray font-medium min-w-0">
+                <Award className="w-4 h-4 text-gold-500 shrink-0" />
+                <span className="truncate">Gate: <span className="font-bold text-cortex-dark">{isLowConfidence ? 'Lab Review' : 'Verified AI'}</span></span>
               </div>
             </div>
           </div>
 
           {/* Sample overview details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <Card title="Predicted Proximate Analysis" className="shadow-premium">
+            <Card title="Predicted Proximate Analysis" className="shadow-premium min-w-0">
               <div className="flex flex-col gap-3 text-xs text-cortex-dark">
                 <div className="flex justify-between items-center border-b border-cortex-border/40 pb-1.5">
                   <span className="text-cortex-gray font-semibold">Total Moisture (M)</span>
@@ -234,11 +234,11 @@ export const Prediction: React.FC = () => {
               </div>
             </Card>
 
-            <Card title="Geospatial Telemetry" className="shadow-premium">
+            <Card title="Geospatial Telemetry" className="shadow-premium min-w-0">
               <div className="flex flex-col gap-3 text-xs text-cortex-dark">
-                <div className="flex items-center gap-2 text-cortex-gray mb-1">
-                  <MapPin className="w-4 h-4 text-gold-500" />
-                  <span className="font-bold text-cortex-dark">{mineName}</span>
+                <div className="flex items-center gap-2 text-cortex-gray mb-1 min-w-0">
+                  <MapPin className="w-4 h-4 text-gold-500 shrink-0" />
+                  <span className="font-bold text-cortex-dark truncate">{mineName}</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-cortex-border/40 pb-1.5">
                   <span className="text-cortex-gray font-semibold">Coalfield Basin</span>
@@ -257,9 +257,9 @@ export const Prediction: React.FC = () => {
           </div>
 
           {/* Model Narrative Card */}
-          <div className="bg-gold-50/40 border border-gold-100 rounded-2xl p-5 shadow-premium">
+          <div className="bg-gold-50/40 border border-gold-100 rounded-2xl p-5 shadow-premium min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-gold-700" />
+              <Sparkles className="w-4 h-4 text-gold-700 shrink-0" />
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-gold-800">
                 ATDIF Decision Intelligence Narrative
               </h4>
@@ -271,71 +271,71 @@ export const Prediction: React.FC = () => {
         </div>
 
         {/* Right drawer - Navigation & workflow actions */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          <Card title="Downstream Decision Nodes" className="shadow-premium">
+        <div className="xl:col-span-4 min-w-0 flex flex-col gap-6">
+          <Card title="Downstream Decision Nodes" className="shadow-premium min-w-0">
             <div className="flex flex-col gap-3">
               <div 
                 onClick={() => navigate('/explainability')}
-                className="flex items-center justify-between p-3.5 border border-cortex-border rounded-xl cursor-pointer hover:border-gold-500/40 hover:bg-gold-50/10 transition-all group"
+                className="flex items-center justify-between p-3.5 border border-cortex-border rounded-xl cursor-pointer hover:border-gold-500/40 hover:bg-gold-50/10 transition-all group min-w-0"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-gold-50 flex items-center justify-center text-gold-500 border border-gold-500/10">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-gold-50 flex items-center justify-center text-gold-500 border border-gold-500/10 shrink-0">
                     <BrainCircuit className="w-5 h-5" />
                   </div>
-                  <div className="text-left">
-                    <h4 className="text-xs font-bold text-cortex-dark uppercase">Explain Prediction</h4>
-                    <p className="text-[10px] text-cortex-gray mt-0.5">SHAP TreeExplainer attributions</p>
+                  <div className="text-left min-w-0">
+                    <h4 className="text-xs font-bold text-cortex-dark uppercase truncate">Explain Prediction</h4>
+                    <p className="text-[10px] text-cortex-gray mt-0.5 truncate">SHAP TreeExplainer attributions</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-cortex-light-gray group-hover:text-gold-500 transition-colors" />
+                <ChevronRight className="w-4 h-4 text-cortex-light-gray group-hover:text-gold-500 transition-colors shrink-0 ml-2" />
               </div>
 
               <div 
                 onClick={() => navigate('/blend')}
-                className="flex items-center justify-between p-3.5 border border-cortex-border rounded-xl cursor-pointer hover:border-gold-500/40 hover:bg-gold-50/10 transition-all group"
+                className="flex items-center justify-between p-3.5 border border-cortex-border rounded-xl cursor-pointer hover:border-gold-500/40 hover:bg-gold-50/10 transition-all group min-w-0"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-gold-50 flex items-center justify-center text-gold-500 border border-gold-500/10">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-gold-50 flex items-center justify-center text-gold-500 border border-gold-500/10 shrink-0">
                     <Sliders className="w-5 h-5" />
                   </div>
-                  <div className="text-left">
-                    <h4 className="text-xs font-bold text-cortex-dark uppercase">Optimize Blend</h4>
-                    <p className="text-[10px] text-cortex-gray mt-0.5">Google OR-Tools linear solver</p>
+                  <div className="text-left min-w-0">
+                    <h4 className="text-xs font-bold text-cortex-dark uppercase truncate">Optimize Blend</h4>
+                    <p className="text-[10px] text-cortex-gray mt-0.5 truncate">Google OR-Tools linear solver</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-cortex-light-gray group-hover:text-gold-500 transition-colors" />
+                <ChevronRight className="w-4 h-4 text-cortex-light-gray group-hover:text-gold-500 transition-colors shrink-0 ml-2" />
               </div>
 
               <div 
                 onClick={() => navigate('/scenarios')}
-                className="flex items-center justify-between p-3.5 border border-cortex-border rounded-xl cursor-pointer hover:border-gold-500/40 hover:bg-gold-50/10 transition-all group"
+                className="flex items-center justify-between p-3.5 border border-cortex-border rounded-xl cursor-pointer hover:border-gold-500/40 hover:bg-gold-50/10 transition-all group min-w-0"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-gold-50 flex items-center justify-center text-gold-500 border border-gold-500/10">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-gold-50 flex items-center justify-center text-gold-500 border border-gold-500/10 shrink-0">
                     <Layers className="w-5 h-5" />
                   </div>
-                  <div className="text-left">
-                    <h4 className="text-xs font-bold text-cortex-dark uppercase">Scenario Simulator</h4>
-                    <p className="text-[10px] text-cortex-gray mt-0.5">Baseline vs What-If analysis</p>
+                  <div className="text-left min-w-0">
+                    <h4 className="text-xs font-bold text-cortex-dark uppercase truncate">Scenario Simulator</h4>
+                    <p className="text-[10px] text-cortex-gray mt-0.5 truncate">Baseline vs What-If analysis</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-cortex-light-gray group-hover:text-gold-500 transition-colors" />
+                <ChevronRight className="w-4 h-4 text-cortex-light-gray group-hover:text-gold-500 transition-colors shrink-0 ml-2" />
               </div>
 
               <div 
                 onClick={() => navigate('/report')}
-                className="flex items-center justify-between p-3.5 border border-cortex-border rounded-xl cursor-pointer hover:border-gold-500/40 hover:bg-gold-50/10 transition-all group"
+                className="flex items-center justify-between p-3.5 border border-cortex-border rounded-xl cursor-pointer hover:border-gold-500/40 hover:bg-gold-50/10 transition-all group min-w-0"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-gold-50 flex items-center justify-center text-gold-500 border border-gold-500/10">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-gold-50 flex items-center justify-center text-gold-500 border border-gold-500/10 shrink-0">
                     <FileSpreadsheet className="w-5 h-5" />
                   </div>
-                  <div className="text-left">
-                    <h4 className="text-xs font-bold text-cortex-dark uppercase">Executive Reports</h4>
-                    <p className="text-[10px] text-cortex-gray mt-0.5">Live database valuation records</p>
+                  <div className="text-left min-w-0">
+                    <h4 className="text-xs font-bold text-cortex-dark uppercase truncate">Executive Reports</h4>
+                    <p className="text-[10px] text-cortex-gray mt-0.5 truncate">Live database valuation records</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-cortex-light-gray group-hover:text-gold-500 transition-colors" />
+                <ChevronRight className="w-4 h-4 text-cortex-light-gray group-hover:text-gold-500 transition-colors shrink-0 ml-2" />
               </div>
             </div>
           </Card>
@@ -343,7 +343,7 @@ export const Prediction: React.FC = () => {
           {/* Confidence Indicator Widget */}
           <div 
             onClick={() => navigate('/confidence')}
-            className="bg-white border border-cortex-border rounded-2xl p-6 shadow-premium flex flex-col items-center justify-center text-center cursor-pointer hover:border-gold-500/40 transition-colors group"
+            className="bg-white border border-cortex-border rounded-2xl p-6 shadow-premium flex flex-col items-center justify-center text-center cursor-pointer hover:border-gold-500/40 transition-colors group min-w-0"
           >
             <span className="text-[9px] font-bold text-cortex-gray uppercase tracking-widest block mb-4">
               ATDIF Confidence Score

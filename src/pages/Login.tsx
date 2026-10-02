@@ -34,9 +34,7 @@ export const Login: React.FC = () => {
       {/* Top Banner */}
       <header className="px-8 py-5 flex justify-between items-center border-b border-cortex-border bg-white">
         <Link to="/" className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gold-500/10 border border-gold-500/30 flex items-center justify-center">
-            <span className="font-mono font-black text-gold-700 text-sm">CCX</span>
-          </div>
+          <img src="/logo.png" alt="CarbonCortex Logo" className="w-9 h-9 rounded-lg object-contain shadow-xs shrink-0" />
           <div className="flex flex-col text-left">
             <span className="text-base font-bold text-cortex-dark tracking-tight leading-none">CarbonCortex</span>
             <span className="text-[9px] text-gold-700 font-semibold uppercase tracking-widest mt-0.5">Coal Quality & Decision Intelligence</span>

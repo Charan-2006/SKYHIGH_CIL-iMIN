@@ -117,20 +117,20 @@ export const Report: React.FC = () => {
   };
 
   return (
-    <div className="text-left select-none flex flex-col gap-6">
+    <div className="text-left select-none flex flex-col gap-6 flex-1 min-h-0">
       {/* Header toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden min-w-0">
         <div>
           <button 
-            onClick={() => navigate('/prediction')}
+            onClick={() => navigate('/evaluation')}
             className="inline-flex items-center gap-1 text-xs font-bold text-gold-700 hover:text-gold-900 mb-1.5 cursor-pointer uppercase tracking-wider"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Prediction Outcome
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Quality Evaluation
           </button>
           <h1 className="text-2xl font-bold text-cortex-dark">Enterprise Compliance & Valuation Reports</h1>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <Button 
             variant="outline" 
             size="sm" 
@@ -144,7 +144,7 @@ export const Report: React.FC = () => {
       </div>
 
       {/* Report Selector Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-cortex-border print:hidden">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-cortex-border print:hidden min-w-0">
         {REPORT_TYPES.map((rep) => {
           const Icon = rep.icon;
           const isActive = activeReportTab === rep.id;
@@ -152,7 +152,7 @@ export const Report: React.FC = () => {
             <button
               key={rep.id}
               onClick={() => setActiveReportTab(rep.id)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                 isActive 
                   ? 'bg-gold-800 text-white shadow-sm' 
                   : 'bg-white border border-cortex-border text-cortex-gray hover:text-cortex-dark hover:bg-gold-50/20'
@@ -168,29 +168,32 @@ export const Report: React.FC = () => {
       {/* View 1: Active Consignment Certificate */}
       {activeReportTab === 'consignment' && (
         !lastPrediction ? (
-          <div className="text-left py-12 max-w-lg mx-auto">
+          <div className="text-left py-12 max-w-lg mx-auto w-full flex-1 flex flex-col justify-center min-h-[360px]">
             <Card title="No Active Consignment" className="text-center flex flex-col items-center">
               <FileText className="w-12 h-12 text-gold-500 mb-4 animate-pulse" />
               <p className="text-xs text-cortex-gray mb-6">
                 No active consignment prediction loaded. Please evaluate a laboratory sample to generate an executive certificate.
               </p>
-              <Button onClick={() => navigate('/laboratory')}>Go to Laboratory Input</Button>
+              <Button onClick={() => navigate('/evaluation')}>Go to Quality Evaluation</Button>
             </Card>
           </div>
         ) : (
           <div 
             ref={reportRef}
-            className="bg-white border border-cortex-border rounded-2xl p-8 max-w-4xl mx-auto w-full shadow-premium flex flex-col gap-6 print:border-none print:shadow-none print:p-0"
+            className="bg-white border border-cortex-border rounded-2xl p-6 sm:p-8 max-w-4xl mx-auto w-full shadow-premium flex flex-col gap-6 print:border-none print:shadow-none print:p-0 min-w-0"
           >
             {/* Letterhead Logo Header */}
-            <div className="flex justify-between items-start border-b-2 border-gold-500/30 pb-5">
-              <div className="flex flex-col">
-                <span className="text-2xl font-bold text-gold-900 tracking-tight leading-none uppercase">CarbonCortex</span>
-                <span className="text-[10px] text-cortex-gray font-semibold mt-1 tracking-widest">COAL QUALITY & DECISION INTELLIGENCE PLATFORM</span>
-                <span className="text-[8px] text-cortex-gray/65 font-mono mt-0.5">COMPLIANCE LEDGER: CIL-ISO-1928-CERTIFIED</span>
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 border-b-2 border-gold-500/30 pb-5">
+              <div className="flex items-center gap-3.5">
+                <img src="/logo.png" alt="CarbonCortex Logo" className="w-12 h-12 rounded-xl object-contain shadow-xs shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-2xl font-bold text-gold-900 tracking-tight leading-none uppercase">CarbonCortex</span>
+                  <span className="text-[10px] text-cortex-gray font-semibold mt-1 tracking-widest">COAL QUALITY & DECISION INTELLIGENCE PLATFORM</span>
+                  <span className="text-[8px] text-cortex-gray/65 font-mono mt-0.5">COMPLIANCE LEDGER: CIL-ISO-1928-CERTIFIED</span>
+                </div>
               </div>
               
-              <div className="text-right text-[10px] text-cortex-gray flex flex-col gap-0.5">
+              <div className="text-left sm:text-right text-[10px] text-cortex-gray flex flex-col gap-0.5 shrink-0">
                 <span className="font-bold text-cortex-dark">DATE OF ISSUANCE:</span>
                 <span className="font-mono">{new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                 <span className="font-bold text-cortex-dark mt-1">REPORT CODE:</span>
@@ -199,46 +202,46 @@ export const Report: React.FC = () => {
             </div>
 
             {/* Consignment Overview Banner */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 bg-cortex-bg-secondary/40 border border-cortex-border rounded-xl">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-cortex-bg-secondary/40 border border-cortex-border rounded-xl">
+              <div className="min-w-0">
                 <span className="text-[9px] font-bold text-cortex-gray uppercase">Coal Mine</span>
-                <p className="text-sm font-bold text-cortex-dark mt-0.5">{mineName}</p>
+                <p className="text-sm font-bold text-cortex-dark mt-0.5 truncate">{mineName}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <span className="text-[9px] font-bold text-cortex-gray uppercase">Basin / Coalfield</span>
-                <p className="text-sm font-bold text-cortex-dark mt-0.5">{coalfield}</p>
+                <p className="text-sm font-bold text-cortex-dark mt-0.5 truncate">{coalfield}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <span className="text-[9px] font-bold text-cortex-gray uppercase">State Territory</span>
-                <p className="text-sm font-bold text-cortex-dark mt-0.5">{stateName}</p>
+                <p className="text-sm font-bold text-cortex-dark mt-0.5 truncate">{stateName}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <span className="text-[9px] font-bold text-cortex-gray uppercase">Sample Telemetry ID</span>
-                <p className="text-sm font-bold font-mono text-gold-800 mt-0.5">{sampleCode}</p>
+                <p className="text-sm font-bold font-mono text-gold-800 mt-0.5 truncate">{sampleCode}</p>
               </div>
             </div>
 
             {/* Certified Valuation Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div className="p-5 border border-cortex-border rounded-xl bg-white shadow-sm">
+              <div className="p-5 border border-cortex-border rounded-xl bg-white shadow-sm min-w-0">
                 <span className="text-[9px] font-bold uppercase tracking-wider text-cortex-gray">Gross Calorific Value</span>
-                <p className="text-3xl font-extrabold font-mono text-cortex-dark mt-2">
+                <p className="text-3xl font-extrabold font-mono text-cortex-dark mt-2 truncate">
                   {predGcv} <span className="text-xs font-normal text-cortex-gray font-sans">kcal/kg</span>
                 </p>
                 <span className="text-[10px] text-cortex-gray mt-1 block">XGBoost Multi-Target Regression</span>
               </div>
 
-              <div className="p-5 border border-cortex-border rounded-xl bg-white shadow-sm">
+              <div className="p-5 border border-cortex-border rounded-xl bg-white shadow-sm min-w-0">
                 <span className="text-[9px] font-bold uppercase tracking-wider text-cortex-gray">Determined Coal Grade</span>
-                <p className="text-3xl font-extrabold font-mono text-gold-800 mt-2">
+                <p className="text-3xl font-extrabold font-mono text-gold-800 mt-2 truncate">
                   {predGrade}
                 </p>
                 <span className="text-[10px] text-cortex-gray mt-1 block">Official CIL Thermal G1-G17 Schedule</span>
               </div>
 
-              <div className="p-5 border border-cortex-border rounded-xl bg-white shadow-sm">
+              <div className="p-5 border border-cortex-border rounded-xl bg-white shadow-sm min-w-0">
                 <span className="text-[9px] font-bold uppercase tracking-wider text-cortex-gray">ATDIF Confidence</span>
-                <p className={`text-3xl font-extrabold font-mono mt-2 ${predConfidence < 85 ? 'text-red-600' : 'text-emerald-700'}`}>
+                <p className={`text-3xl font-extrabold font-mono mt-2 truncate ${predConfidence < 85 ? 'text-red-600' : 'text-emerald-700'}`}>
                   {predConfidence}%
                 </p>
                 <span className="text-[10px] text-cortex-gray mt-1 block">
@@ -248,11 +251,12 @@ export const Report: React.FC = () => {
             </div>
 
             {/* Proximate Analysis Breakdown Table */}
-            <div>
+            <div className="min-w-0">
               <h3 className="text-xs font-bold text-cortex-dark uppercase tracking-wider mb-3">
                 Laboratory Proximate Breakdown
               </h3>
-              <table className="w-full text-xs border border-cortex-border rounded-lg overflow-hidden">
+              <div className="overflow-x-auto min-w-0">
+                <table className="w-full text-xs border border-cortex-border rounded-lg overflow-hidden min-w-[500px]">
                 <thead className="bg-cortex-bg-secondary text-cortex-gray uppercase font-bold text-[10px]">
                   <tr>
                     <th className="py-2.5 px-4 text-left border-b border-cortex-border">Parameter</th>
@@ -288,6 +292,7 @@ export const Report: React.FC = () => {
                   </tr>
                 </tbody>
               </table>
+              </div>
             </div>
 
             {/* Dispatch Intelligence Decision */}
@@ -321,21 +326,21 @@ export const Report: React.FC = () => {
 
       {/* View 2: Enterprise Database Reports */}
       {activeReportTab !== 'consignment' && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 flex-1 min-h-0 min-w-0">
           {loadingReport ? (
-            <div className="p-12 text-center text-xs text-cortex-gray font-semibold flex items-center justify-center gap-2">
-              <RefreshCw className="w-4 h-4 animate-spin text-gold-600" />
+            <div className="p-12 text-center text-xs text-cortex-gray font-semibold flex items-center justify-center gap-2 flex-1 min-h-[300px]">
+              <RefreshCw className="w-4 h-4 animate-spin text-gold-600 shrink-0" />
               <span>Aggregating real-time records from MongoDB...</span>
             </div>
           ) : reportData ? (
             <>
               {/* Summary Banner */}
-              <div className="p-5 bg-white border border-cortex-border rounded-2xl shadow-premium flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
+              <div className="p-5 bg-white border border-cortex-border rounded-2xl shadow-premium flex flex-col md:flex-row justify-between items-start md:items-center gap-4 min-w-0">
+                <div className="min-w-0">
                   <h3 className="text-base font-bold text-cortex-dark">{reportData.title}</h3>
                   <p className="text-xs text-cortex-gray mt-0.5">{reportData.summary}</p>
                 </div>
-                <div className="flex items-center gap-4 text-xs font-mono">
+                <div className="flex flex-wrap items-center gap-4 text-xs font-mono shrink-0">
                   <div className="bg-gold-50 text-gold-800 px-3 py-1.5 rounded-lg border border-gold-200">
                     <span className="font-bold">{reportData.record_count}</span> Records Queried
                   </div>
@@ -346,12 +351,14 @@ export const Report: React.FC = () => {
               </div>
 
               {/* Data Table */}
-              <Card title={`Live Database Audit: ${reportData.title}`} className="shadow-premium">
+              <Card title={`Live Database Audit: ${reportData.title}`} className="shadow-premium min-w-0">
                 {reportData.data && reportData.data.length > 0 ? (
-                  <Table 
-                    columns={getDynamicColumns()}
-                    data={reportData.data}
-                  />
+                  <div className="overflow-x-auto min-w-0">
+                    <Table 
+                      columns={getDynamicColumns()}
+                      data={reportData.data}
+                    />
+                  </div>
                 ) : (
                   <p className="p-8 text-center text-xs text-cortex-gray">
                     No database records found for this report category.
@@ -360,9 +367,11 @@ export const Report: React.FC = () => {
               </Card>
             </>
           ) : (
-            <p className="p-8 text-center text-xs text-cortex-gray">
-              Unable to load report from server.
-            </p>
+            <div className="flex-1 flex items-center justify-center min-h-[300px]">
+              <p className="p-8 text-center text-xs text-cortex-gray">
+                Unable to load report from server.
+              </p>
+            </div>
           )}
         </div>
       )}

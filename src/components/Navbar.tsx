@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { Bell, Search, ChevronDown, LogOut, User as UserIcon } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export const Navbar: React.FC = () => {
   const { systemStatus, lastPrediction, currentUser, logout } = useApp();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const location = useLocation();
   const navigate = useNavigate();
 
   const getSystemStatusLabel = () => {
@@ -19,15 +18,6 @@ export const Navbar: React.FC = () => {
       default:
         return 'AI Cortex Idle';
     }
-  };
-
-  const getActiveTabClass = (path: string) => {
-    const isActive = location.pathname === path;
-    return `px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
-      isActive 
-        ? 'text-gold-500 border-b-2 border-gold-500 font-bold' 
-        : 'text-cortex-gray hover:text-cortex-dark'
-    }`;
   };
 
   const getRoleBadge = (role?: string) => {
@@ -45,9 +35,9 @@ export const Navbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-40 w-full h-16 bg-white border-b border-cortex-border flex items-center justify-between px-6 shadow-sm">
-      {/* Search and Tabs Area */}
-      <div className="flex items-center gap-8 flex-1 max-w-xl">
-        <div className="relative w-full max-w-xs">
+      {/* Search Area */}
+      <div className="flex items-center gap-4 flex-1 max-w-md">
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cortex-light-gray" />
           <input 
             type="text"
@@ -55,25 +45,10 @@ export const Navbar: React.FC = () => {
             className="w-full pl-9 pr-4 py-1.5 bg-cortex-bg-secondary border border-cortex-border rounded-lg text-xs outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500/10"
           />
         </div>
-
-        {/* Global/Unit Tabs */}
-        <div className="hidden lg:flex items-center gap-5">
-          <Link to="/dashboard" className={getActiveTabClass('/dashboard')}>Overview</Link>
-          <Link to="/prediction" className={getActiveTabClass('/prediction')}>Quality AI</Link>
-          <Link to="/laboratory" className={getActiveTabClass('/laboratory')}>Verification</Link>
-          <Link to="/blend" className={getActiveTabClass('/blend')}>Blend</Link>
-          <Link to="/scenarios" className={getActiveTabClass('/scenarios')}>Simulation</Link>
-        </div>
       </div>
 
       {/* Status Indicators & Notifications */}
       <div className="flex items-center gap-4">
-        {/* Environment Badge */}
-        <div className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200/80 rounded-md text-[10px] font-semibold text-amber-800">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-          <span>Demo Environment — Synthetic Dataset</span>
-        </div>
-
         {/* Dynamic status pill */}
         <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gold-50 border border-gold-100 rounded-full text-xs text-gold-800 font-medium">
           <span className="relative flex h-2 w-2">

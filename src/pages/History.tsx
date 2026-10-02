@@ -106,21 +106,21 @@ export const History: React.FC = () => {
   ];
 
   return (
-    <div className="text-left select-none flex flex-col gap-6">
+    <div className="text-left select-none flex flex-col gap-6 flex-1 min-h-0">
       {/* Page Title */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 min-w-0">
         <div>
           <h1 className="text-xs font-bold uppercase tracking-widest text-gold-700">Audit Trail Ledger</h1>
           <h2 className="text-2xl font-bold text-cortex-dark mt-1">Prediction History</h2>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 shrink-0">
           <Button 
             variant="outline" 
             size="sm" 
             onClick={handleExportCSV}
             disabled={filteredHistory.length === 0}
-            className="flex items-center gap-1.5 font-bold cursor-pointer"
+            className="flex items-center gap-1.5 font-bold cursor-pointer shrink-0"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export CSV Ledger</span>
@@ -131,7 +131,7 @@ export const History: React.FC = () => {
             size="sm" 
             onClick={handleClearHistory}
             disabled={history.length === 0}
-            className="flex items-center gap-1.5 text-red-650 hover:bg-red-50 hover:border-red-200 border-cortex-border font-bold cursor-pointer"
+            className="flex items-center gap-1.5 text-red-650 hover:bg-red-50 hover:border-red-200 border-cortex-border font-bold cursor-pointer shrink-0"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Clear Database</span>
@@ -140,8 +140,8 @@ export const History: React.FC = () => {
       </div>
 
       {/* Filter and Search controls */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-white border border-cortex-border p-4 rounded-xl shadow-sm">
-        <div className="md:col-span-6 relative w-full">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-white border border-cortex-border p-4 rounded-xl shadow-sm min-w-0">
+        <div className="md:col-span-6 relative w-full min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-cortex-light-gray" />
           <input 
             type="text"
@@ -155,7 +155,7 @@ export const History: React.FC = () => {
           />
         </div>
 
-        <div className="md:col-span-4 flex items-center gap-2">
+        <div className="md:col-span-4 flex items-center gap-2 min-w-0">
           <SlidersHorizontal className="w-4 h-4 text-cortex-light-gray flex-shrink-0" />
           <select
             value={selectedState}
@@ -172,18 +172,20 @@ export const History: React.FC = () => {
           </select>
         </div>
 
-        <div className="md:col-span-2 text-right text-xs text-cortex-gray font-semibold">
+        <div className="md:col-span-2 text-left md:text-right text-xs text-cortex-gray font-semibold shrink-0">
           Showing {filteredHistory.length} records
         </div>
       </div>
 
       {/* Prediction History Table */}
-      <Table 
-        columns={columns} 
-        data={paginatedData}
-        emptyMessage="No predictions matching filters could be located."
-        className="shadow-premium"
-      />
+      <div className="overflow-x-auto min-w-0">
+        <Table 
+          columns={columns} 
+          data={paginatedData}
+          emptyMessage="No predictions matching filters could be located."
+          className="shadow-premium min-w-[700px]"
+        />
+      </div>
 
       {/* Pagination component */}
       {totalPages > 1 && (

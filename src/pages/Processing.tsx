@@ -44,7 +44,7 @@ export const Processing: React.FC = () => {
         checkAndRedirect();
       } catch (err) {
         console.error('AI Processing error:', err);
-        navigate('/laboratory');
+        navigate('/evaluation');
       }
     };
 
@@ -52,7 +52,7 @@ export const Processing: React.FC = () => {
       if (resolvedResult && loaderFinished) {
         setLastPrediction(resolvedResult);
         await loadHistory(); // Reload history logs in context
-        navigate('/prediction');
+        navigate('/evaluation');
       }
     };
 
@@ -68,7 +68,7 @@ export const Processing: React.FC = () => {
   }, [currentSample, navigate, setCurrentSample, setLastPrediction, loadHistory]);
 
   return (
-    <div className="flex items-center justify-center min-h-[70vh] bg-cortex-bg-secondary">
+    <div className="flex items-center justify-center flex-1 min-h-[400px] w-full bg-cortex-bg-secondary rounded-2xl p-6">
       <Loader durationMs={4000} />
     </div>
   );

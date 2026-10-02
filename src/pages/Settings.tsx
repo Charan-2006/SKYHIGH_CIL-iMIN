@@ -46,23 +46,23 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <div className="text-left select-none flex flex-col gap-6">
+    <div className="text-left select-none flex flex-col gap-6 flex-1 min-h-0">
       {/* Title */}
       <div>
         <h1 className="text-xs font-bold uppercase tracking-widest text-gold-700">Control Panel</h1>
         <h2 className="text-2xl font-bold text-cortex-dark mt-1">System Settings</h2>
       </div>
 
-      <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <form onSubmit={handleSave} className="grid grid-cols-1 xl:grid-cols-12 gap-8 min-w-0">
         {/* Left Side: Parameters input form */}
-        <div className="lg:col-span-8 flex flex-col gap-6 bg-white border border-cortex-border rounded-2xl p-6 shadow-premium">
+        <div className="xl:col-span-8 flex flex-col gap-6 bg-white border border-cortex-border rounded-2xl p-6 shadow-premium min-w-0">
           <div className="flex items-center gap-2 pb-3 border-b border-cortex-border/50 mb-2">
-            <SettingsIcon className="w-5 h-5 text-gold-500" />
+            <SettingsIcon className="w-5 h-5 text-gold-500 shrink-0" />
             <h3 className="text-sm font-bold text-cortex-dark uppercase tracking-wider">Model & API Gateway Settings</h3>
           </div>
 
           {/* Model Selection */}
-          <div className="flex flex-col gap-1.5 w-full">
+          <div className="flex flex-col gap-1.5 w-full min-w-0">
             <label className="text-xs font-semibold uppercase tracking-wider text-cortex-gray">
               Active Neural Estimator Model
             </label>
@@ -79,7 +79,7 @@ export const Settings: React.FC = () => {
           </div>
 
           {/* API Endpoints */}
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-4 min-w-0">
             <Input
               label="API Endpoint Gateway"
               value={apiEndpoint}
@@ -116,24 +116,24 @@ export const Settings: React.FC = () => {
               type="checkbox" 
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
-              className="w-5 h-5 rounded accent-gold-500 cursor-pointer"
+              className="w-5 h-5 rounded accent-gold-500 cursor-pointer shrink-0 ml-2"
             />
           </div>
 
           {/* Footer Action buttons */}
-          <div className="border-t border-cortex-border/50 pt-5 mt-2 flex justify-between items-center">
+          <div className="border-t border-cortex-border/50 pt-5 mt-2 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
             <Button
               type="button"
               variant="secondary"
               size="md"
               onClick={handleReset}
-              className="flex items-center gap-1 font-bold cursor-pointer"
+              className="flex items-center justify-center gap-1 font-bold cursor-pointer shrink-0"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset Defaults</span>
             </Button>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-end gap-3 shrink-0">
               {saveSuccess && (
                 <span className="text-xs font-bold text-green-600 animate-pulse">
                   Settings Saved Successfully
@@ -142,7 +142,7 @@ export const Settings: React.FC = () => {
               <Button
                 type="submit"
                 size="md"
-                className="flex items-center gap-1.5 font-bold cursor-pointer"
+                className="flex items-center justify-center gap-1.5 font-bold cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 <span>Save Configuration</span>
@@ -152,7 +152,7 @@ export const Settings: React.FC = () => {
         </div>
 
         {/* Right Side: Informative Panels */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
+        <div className="xl:col-span-4 flex flex-col gap-6 min-w-0">
           {/* Card: System Node Security */}
           <Card 
             title="System Security compliance" 

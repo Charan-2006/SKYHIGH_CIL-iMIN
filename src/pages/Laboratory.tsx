@@ -181,7 +181,7 @@ export const Laboratory: React.FC = () => {
   };
 
   return (
-    <div className="text-left select-none flex flex-col gap-6">
+    <div className="text-left select-none flex flex-col gap-6 flex-1 min-h-0">
       {/* Page Title header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -226,7 +226,7 @@ export const Laboratory: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray mb-3.5 block">
               Select Standard Mineral Preset Template
             </span>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {SAMPLE_PRESETS.map((p) => {
                 const isSelected = selectedPresetName === p.mineName;
                 return (
@@ -247,11 +247,11 @@ export const Laboratory: React.FC = () => {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmitSample)} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <form onSubmit={handleSubmit(onSubmitSample)} className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
             {/* Left column - laboratory form fields */}
-            <div className="lg:col-span-8 flex flex-col gap-6 bg-white border border-cortex-border rounded-2xl p-6 shadow-premium">
+            <div className="xl:col-span-8 min-w-0 flex flex-col gap-6 bg-white border border-cortex-border rounded-2xl p-5 sm:p-6 shadow-premium">
               <div className="flex items-center gap-2 pb-3 border-b border-cortex-border/50 mb-2">
-                <Database className="w-5 h-5 text-gold-500" />
+                <Database className="w-5 h-5 text-gold-500 shrink-0" />
                 <h3 className="text-sm font-bold text-cortex-dark uppercase tracking-wider">
                   Proximate & Ultimate Physical Telemetry
                 </h3>
@@ -305,8 +305,8 @@ export const Laboratory: React.FC = () => {
             </div>
 
             {/* Right column - Operational Guide */}
-            <div className="lg:col-span-4 flex flex-col gap-6">
-              <Card title="ATDIF Verification Protocol" className="shadow-premium">
+            <div className="xl:col-span-4 min-w-0 flex flex-col gap-6">
+              <Card title="ATDIF Verification Protocol" className="shadow-premium min-w-0">
                 <p className="text-xs text-cortex-gray leading-relaxed mb-4">
                   CarbonCortex enforces the <strong className="text-cortex-dark">Adaptive Trust Decision Intelligence Framework (ATDIF)</strong>.
                 </p>
@@ -326,9 +326,9 @@ export const Laboratory: React.FC = () => {
         </>
       ) : (
         /* Laboratory Verification Queue View */
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 flex-1 min-h-0">
           {/* Header Action */}
-          <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-cortex-border">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-xl border border-cortex-border">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-cortex-dark">
                 Pending Verification Requests ({pendingRequests.length})
@@ -337,21 +337,21 @@ export const Laboratory: React.FC = () => {
                 Low-confidence predictions awaiting physical bomb calorimeter testing.
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={fetchVerificationQueue} disabled={loadingQueue}>
+            <Button variant="outline" size="sm" onClick={fetchVerificationQueue} disabled={loadingQueue} className="shrink-0">
               <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loadingQueue ? 'animate-spin' : ''}`} />
               <span>Refresh Queue</span>
             </Button>
           </div>
 
           {/* Pending Table */}
-          <Card title="Pending Lab Queue" className="shadow-premium">
+          <Card title="Pending Lab Queue" className="shadow-premium min-w-0">
             {pendingRequests.length === 0 ? (
               <div className="py-8 text-center text-xs text-cortex-gray">
                 No pending laboratory verification requests. All inferences are within high-confidence bounds.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left border-collapse">
+              <div className="overflow-x-auto min-w-0">
+                <table className="w-full text-xs text-left border-collapse min-w-[700px]">
                   <thead>
                     <tr className="border-b border-cortex-border text-cortex-gray font-bold uppercase tracking-wider">
                       <th className="py-2.5 px-3">Request ID</th>
@@ -397,8 +397,8 @@ export const Laboratory: React.FC = () => {
 
           {/* Submission Modal */}
           {selectedRequest && (
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-              <div className="bg-white border border-cortex-border rounded-2xl shadow-premium p-6 max-w-lg w-full text-left">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+              <div className="bg-white border border-cortex-border rounded-2xl shadow-premium p-6 max-w-lg w-full text-left my-auto max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-start pb-3 border-b border-cortex-border mb-4">
                   <div>
                     <h3 className="font-bold text-cortex-dark text-base">Enter Physical Bomb Calorimeter Results</h3>
@@ -419,7 +419,7 @@ export const Laboratory: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="font-semibold block mb-1">Actual GCV (kcal/kg)</label>
                       <input
@@ -444,7 +444,7 @@ export const Laboratory: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="font-semibold block mb-1">Moisture (%)</label>
                       <input
@@ -491,9 +491,9 @@ export const Laboratory: React.FC = () => {
           )}
 
           {/* Verified Lab History & Error Analysis */}
-          <Card title="Prediction vs Actual Laboratory Reconciliation" className="shadow-premium">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left border-collapse">
+          <Card title="Prediction vs Actual Laboratory Reconciliation" className="shadow-premium min-w-0">
+            <div className="overflow-x-auto min-w-0">
+              <table className="w-full text-xs text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr className="border-b border-cortex-border text-cortex-gray font-bold uppercase tracking-wider">
                     <th className="py-2.5 px-3">Result ID</th>

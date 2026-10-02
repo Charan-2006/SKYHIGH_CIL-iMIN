@@ -8,26 +8,26 @@ export const MapPage: React.FC = () => {
   const [selectedSub, setSelectedSub] = useState<CoalIndiaSubsidiary | null>(null);
 
   return (
-    <div className="text-left select-none flex flex-col gap-6">
+    <div className="text-left select-none flex flex-col gap-6 flex-1 min-h-0">
       {/* Header */}
       <div>
         <h1 className="text-xs font-bold uppercase tracking-widest text-gold-700">Geospatial Telemetry</h1>
         <h2 className="text-2xl font-bold text-cortex-dark mt-1">India Coalfield GIS Map</h2>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 flex-1 min-h-0">
         {/* Geographic Leaflet Map */}
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-8 min-w-0 flex flex-col flex-1 h-full min-h-[460px] lg:min-h-[600px]">
           <CoalMap onSubsidiarySelect={setSelectedSub} />
         </div>
 
         {/* Selected Mine Details Info Panel */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
+        <div className="lg:col-span-4 min-w-0 flex flex-col gap-6 h-full">
           {selectedSub ? (
             <Card 
               title={`${selectedSub.name} Details`}
               headerAction={<Award className="w-5 h-5 text-gold-500" />}
-              className="shadow-premium text-left flex-1"
+              className="shadow-premium text-left flex-1 h-full"
             >
               <div className="flex flex-col gap-4 text-xs">
                 <div className="border-b border-cortex-border pb-3 mb-2">
@@ -87,7 +87,7 @@ export const MapPage: React.FC = () => {
               </div>
             </Card>
           ) : (
-            <div className="bg-white border border-cortex-border rounded-2xl p-6 shadow-premium text-center flex flex-col items-center justify-center h-full min-h-[350px]">
+            <div className="bg-white border border-cortex-border rounded-2xl p-6 shadow-premium text-center flex flex-col items-center justify-center flex-1 h-full min-h-[350px]">
               <Globe className="w-12 h-12 text-gold-500 mb-4 animate-pulse" />
               <h3 className="text-xs font-bold uppercase tracking-wider text-cortex-gray">
                 Geographic Workspace Node
