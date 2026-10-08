@@ -207,79 +207,159 @@ export const Blend: React.FC = () => {
 
             <div className="flex flex-col gap-4">
               {/* Target GCV */}
-              <div className="flex flex-col gap-1.5">
+              <div className="p-3 bg-cortex-bg-secondary/40 rounded-xl border border-cortex-border/70 flex flex-col gap-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-cortex-dark">Target GCV</span>
-                  <span className="font-mono font-bold text-gold-900 bg-gold-50 px-2 py-0.5 rounded border border-gold-200">
-                    {targetGcv.toLocaleString()} kcal/kg
-                  </span>
+                  <div>
+                    <label htmlFor="target-gcv-manual" className="font-bold text-cortex-dark block">Target GCV</label>
+                    <span className="text-[10px] text-cortex-gray">Calorific value requirement</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id="target-gcv-manual"
+                      type="number"
+                      min="3500"
+                      max="6500"
+                      step="10"
+                      value={targetGcv}
+                      onChange={(e) => setTargetGcv(Math.max(0, Number(e.target.value)))}
+                      className="w-24 px-2 py-1 text-right font-mono font-bold text-gold-900 bg-white border border-gold-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 shadow-sm"
+                    />
+                    <span className="text-[11px] text-cortex-gray font-semibold">kcal/kg</span>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min="4200"
-                  max="5200"
-                  step="50"
-                  value={targetGcv}
-                  onChange={(e) => setTargetGcv(Number(e.target.value))}
-                  className="w-full accent-gold-600 cursor-pointer"
-                />
+                <div className="flex flex-col gap-1">
+                  <input
+                    type="range"
+                    min="4200"
+                    max="5500"
+                    step="25"
+                    value={targetGcv}
+                    onChange={(e) => setTargetGcv(Number(e.target.value))}
+                    className="w-full accent-gold-600 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[9px] text-cortex-gray font-mono">
+                    <span>4,200</span>
+                    <span>4,850 (Std)</span>
+                    <span>5,500</span>
+                  </div>
+                </div>
               </div>
 
               {/* Max Ash */}
-              <div className="flex flex-col gap-1.5">
+              <div className="p-3 bg-cortex-bg-secondary/40 rounded-xl border border-cortex-border/70 flex flex-col gap-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-cortex-dark">Max Ash</span>
-                  <span className="font-mono font-bold text-cortex-dark">
-                    {maxAsh}%
-                  </span>
+                  <div>
+                    <label htmlFor="max-ash-manual" className="font-bold text-cortex-dark block">Max Ash Ceiling</label>
+                    <span className="text-[10px] text-cortex-gray">Inorganic matter limit</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id="max-ash-manual"
+                      type="number"
+                      min="10.0"
+                      max="45.0"
+                      step="0.1"
+                      value={maxAsh}
+                      onChange={(e) => setMaxAsh(Math.max(0, Number(e.target.value)))}
+                      className="w-20 px-2 py-1 text-right font-mono font-bold text-cortex-dark bg-white border border-cortex-border rounded-lg text-xs outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 shadow-sm"
+                    />
+                    <span className="text-[11px] text-cortex-gray font-semibold">%</span>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min="18.0"
-                  max="32.0"
-                  step="0.5"
-                  value={maxAsh}
-                  onChange={(e) => setMaxAsh(Number(e.target.value))}
-                  className="w-full accent-gold-600 cursor-pointer"
-                />
+                <div className="flex flex-col gap-1">
+                  <input
+                    type="range"
+                    min="18.0"
+                    max="32.0"
+                    step="0.2"
+                    value={maxAsh}
+                    onChange={(e) => setMaxAsh(Number(e.target.value))}
+                    className="w-full accent-gold-600 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[9px] text-cortex-gray font-mono">
+                    <span>18.0%</span>
+                    <span>25.0%</span>
+                    <span>32.0%</span>
+                  </div>
+                </div>
               </div>
 
               {/* Max Moisture */}
-              <div className="flex flex-col gap-1.5">
+              <div className="p-3 bg-cortex-bg-secondary/40 rounded-xl border border-cortex-border/70 flex flex-col gap-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-cortex-dark">Max Moisture</span>
-                  <span className="font-mono font-bold text-cortex-dark">
-                    {maxMoisture}%
-                  </span>
+                  <div>
+                    <label htmlFor="max-moisture-manual" className="font-bold text-cortex-dark block">Max Total Moisture</label>
+                    <span className="text-[10px] text-cortex-gray">Precipitation &amp; surface moisture</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id="max-moisture-manual"
+                      type="number"
+                      min="3.0"
+                      max="25.0"
+                      step="0.1"
+                      value={maxMoisture}
+                      onChange={(e) => setMaxMoisture(Math.max(0, Number(e.target.value)))}
+                      className="w-20 px-2 py-1 text-right font-mono font-bold text-cortex-dark bg-white border border-cortex-border rounded-lg text-xs outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 shadow-sm"
+                    />
+                    <span className="text-[11px] text-cortex-gray font-semibold">%</span>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min="6.0"
-                  max="14.0"
-                  step="0.5"
-                  value={maxMoisture}
-                  onChange={(e) => setMaxMoisture(Number(e.target.value))}
-                  className="w-full accent-gold-600 cursor-pointer"
-                />
+                <div className="flex flex-col gap-1">
+                  <input
+                    type="range"
+                    min="6.0"
+                    max="14.0"
+                    step="0.2"
+                    value={maxMoisture}
+                    onChange={(e) => setMaxMoisture(Number(e.target.value))}
+                    className="w-full accent-gold-600 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[9px] text-cortex-gray font-mono">
+                    <span>6.0%</span>
+                    <span>10.0%</span>
+                    <span>14.0%</span>
+                  </div>
+                </div>
               </div>
 
               {/* Target Batch Quantity */}
-              <div className="flex flex-col gap-1.5 pt-2 border-t border-cortex-border/50">
+              <div className="p-3 bg-cortex-bg-secondary/40 rounded-xl border border-cortex-border/70 flex flex-col gap-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-cortex-dark">Batch Quantity</span>
-                  <span className="font-mono font-bold text-cortex-dark">
-                    {targetQuantity.toLocaleString()} tonnes
-                  </span>
+                  <div>
+                    <label htmlFor="target-quantity-manual" className="font-bold text-cortex-dark block">Batch Quantity</label>
+                    <span className="text-[10px] text-cortex-gray">Target dispatch consignment volume</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id="target-quantity-manual"
+                      type="number"
+                      min="500"
+                      max="50000"
+                      step="100"
+                      value={targetQuantity}
+                      onChange={(e) => setTargetQuantity(Math.max(100, Number(e.target.value)))}
+                      className="w-24 px-2 py-1 text-right font-mono font-bold text-cortex-dark bg-white border border-cortex-border rounded-lg text-xs outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 shadow-sm"
+                    />
+                    <span className="text-[11px] text-cortex-gray font-semibold">tonnes</span>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min="2000"
-                  max="25000"
-                  step="1000"
-                  value={targetQuantity}
-                  onChange={(e) => setTargetQuantity(Number(e.target.value))}
-                  className="w-full accent-gold-600 cursor-pointer"
-                />
+                <div className="flex flex-col gap-1">
+                  <input
+                    type="range"
+                    min="2000"
+                    max="25000"
+                    step="500"
+                    value={targetQuantity}
+                    onChange={(e) => setTargetQuantity(Number(e.target.value))}
+                    className="w-full accent-gold-600 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[9px] text-cortex-gray font-mono">
+                    <span>2,000 t</span>
+                    <span>10,000 t</span>
+                    <span>25,000 t</span>
+                  </div>
+                </div>
               </div>
             </div>
 

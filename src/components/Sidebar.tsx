@@ -10,8 +10,8 @@ import {
   History, 
   FileSpreadsheet,
   Sliders,
-  Cpu,
   Layers,
+  FlaskConical,
   Truck,
   User
 } from 'lucide-react';
@@ -20,14 +20,14 @@ export const Sidebar: React.FC = () => {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutGrid },
     { name: 'Coal Quality Evaluation', path: '/evaluation', icon: BrainCircuit },
+    { name: 'Lab Testing', path: '/laboratory', icon: FlaskConical },
     { name: 'Blend Optimizer', path: '/blend', icon: Sliders },
     { name: 'Scenario Simulator', path: '/scenarios', icon: Layers },
     { name: 'Dispatch Planning', path: '/dispatch', icon: Truck },
-    { name: 'Model Governance', path: '/models', icon: Cpu },
     { name: 'Mine Analytics', path: '/analytics', icon: LineChart },
     { name: 'India Mine Map', path: '/map', icon: Map },
     { name: 'Prediction History', path: '/history', icon: History },
-    { name: 'Executive Reports', path: '/report', icon: FileSpreadsheet }
+    { name: 'Executive Report', path: '/report', icon: FileSpreadsheet }
   ];
 
   const secondaryItems = [

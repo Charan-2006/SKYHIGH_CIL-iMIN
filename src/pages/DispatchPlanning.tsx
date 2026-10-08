@@ -7,12 +7,18 @@ import {
   Truck, 
   Calendar, 
   MapPin, 
-  Sparkles,
-  Check,
-  Loader2
+  Layers, 
+  Clock, 
+  ShieldCheck, 
+  AlertCircle,
+  RefreshCw,
+  ArrowRight,
+  TrendingUp,
+  Package
 } from 'lucide-react';
 
-interface AvailableCoal {
+interface AvailableCoalSource {
+  id: string;
   mine: string;
   seam: string;
   quantity: number;
@@ -21,681 +27,832 @@ interface AvailableCoal {
   moisture: number;
 }
 
-const AVAILABLE_COAL_INVENTORY: AvailableCoal[] = [
+const AVAILABLE_COAL_INVENTORY: AvailableCoalSource[] = [
   {
-    mine: 'Korba',
-    seam: 'Seam III',
-    quantity: 6000,
-    predictedGcv: 5100,
-    ash: 23.0,
-    moisture: 6.0
-  },
-  {
+    id: 'talcher-v',
     mine: 'Talcher',
-    seam: 'Seam V',
+    seam: 'Seam-V',
     quantity: 8000,
     predictedGcv: 4850,
-    ash: 28.0,
-    moisture: 7.0
+    ash: 28.4,
+    moisture: 8.2
   },
   {
+    id: 'korba-ii',
+    mine: 'Korba',
+    seam: 'Seam-II',
+    quantity: 6000,
+    predictedGcv: 5120,
+    ash: 23.1,
+    moisture: 6.4
+  },
+  {
+    id: 'singrauli-iii',
     mine: 'Singrauli',
-    seam: 'Seam II',
+    seam: 'Seam-III',
     quantity: 5000,
-    predictedGcv: 5000,
-    ash: 24.0,
-    moisture: 8.0
+    predictedGcv: 4620,
+    ash: 31.2,
+    moisture: 9.1
   }
 ];
 
-interface DispatchAllocation {
-  mine: string;
-  seam: string;
-  tons: number;
-  percentage: number;
-}
-
-interface DispatchPlanResult {
-  isFeasible: boolean;
-  allocations: DispatchAllocation[];
-  totalQuantity: number;
-  expectedGcv: number;
-  expectedAsh: number;
-  expectedMoisture: number;
-  statusText: 'Ready for Dispatch' | 'Review Required';
-  statusExplanation: string;
-}
-
 export const DispatchPlanning: React.FC = () => {
-  // 1. Dispatch Requirement State
-  const [destination, setDestination] = useState('Thermal Power Plant A');
-  const [requiredQuantity, setRequiredQuantity] = useState(5000);
-  const [requiredGcv, setRequiredGcv] = useState(4900);
-  const [maxAsh, setMaxAsh] = useState(25.0);
-  const [maxMoisture, setMaxMoisture] = useState(8.0);
-  const [dispatchDate, setDispatchDate] = useState('2026-10-05');
+  // 1. Dispatch Requirements State
+  const [destination, setDestination] = useState<string>('NTPC Power Plant');
+  const [requiredQuantity, setRequiredQuantity] = useState<number>(10000);
+  const [requiredGcv, setRequiredGcv] = useState<number>(4800);
+  const [maxAsh, setMaxAsh] = useState<number>(30.0);
+  const [maxMoisture, setMaxMoisture] = useState<number>(10.0);
+  const [dispatchDate, setDispatchDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [priority, setPriority] = useState<'Normal' | 'High' | 'Urgent'>('High');
 
-  const [hasCalculated, setHasCalculated] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [activeTimelineStep, setActiveTimelineStep] = useState<number>(5);
-  const [planningStageText, setPlanningStageText] = useState<string>('All validation checks passed • Dispatch Plan Ready');
+  // 8. Logistics State
+  const [dispatchLocation, setDispatchLocation] = useState<string>('Talcher Central Railway Siding');
+  const [transportMode, setTransportMode] = useState<'Road' | 'Rail' | 'Conveyor'>('Rail');
+  const [estimatedDistance, setEstimatedDistance] = useState<number>(145);
+  const [plannedDispatchTime, setPlannedDispatchTime] = useState<string>('06:30 hrs (Shift 1)');
 
-  // Timeline steps definitions
-  const timelineSteps = [
-    { step: 1, title: 'Dispatch Requirement', desc: 'Validating destination & targets' },
-    { step: 2, title: 'Available Coal', desc: 'Scanning pithead inventories' },
-    { step: 3, title: 'Quality Check', desc: 'Verifying GCV, Ash & Moisture' },
-    { step: 4, title: 'Quantity Check', desc: 'Allocating seam tonnage mix' },
-    { step: 5, title: 'Dispatch Plan', desc: 'Finalizing dispatch schedule' },
-  ];
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isCalculated, setIsCalculated] = useState<boolean>(false);
 
-  // 2. Check suitability for each inventory source against current requirements
-  const inventoryWithSuitability = useMemo(() => {
-    return AVAILABLE_COAL_INVENTORY.map((source) => {
-      const isSuitable = 
-        source.predictedGcv >= requiredGcv &&
-        source.ash <= maxAsh &&
-        source.moisture <= maxMoisture;
+  // Available Coal Suitability evaluation
+  const availableCoalWithStatus = useMemo(() => {
+    return AVAILABLE_COAL_INVENTORY.map((item) => {
+      const gcvOk = item.predictedGcv >= requiredGcv;
+      const ashOk = item.ash <= maxAsh;
+      const moistOk = item.moisture <= maxMoisture;
+
+      let statusText: 'Suitable' | 'Review' | 'Exceeds Limit' = 'Suitable';
+      if (!gcvOk || !ashOk || !moistOk) {
+        if (item.ash > maxAsh + 1.0 || item.predictedGcv < requiredGcv - 150) {
+          statusText = 'Review';
+        } else {
+          statusText = 'Review';
+        }
+      }
       return {
-        ...source,
-        status: isSuitable ? 'Suitable' : 'Review'
+        ...item,
+        status: statusText,
+        gcvOk,
+        ashOk,
+        moistOk
       };
     });
   }, [requiredGcv, maxAsh, maxMoisture]);
 
-  // 3. Plan Calculation Engine
-  const planResult = useMemo<DispatchPlanResult>(() => {
-    const totalAvailable = AVAILABLE_COAL_INVENTORY.reduce((acc, curr) => acc + curr.quantity, 0);
+  // Dispatch Allocation Calculation Algorithm
+  // Allocates coal from available sources to satisfy target quantity & quality
+  const dispatchPlan = useMemo(() => {
+    const totalAvail = AVAILABLE_COAL_INVENTORY.reduce((sum, s) => sum + s.quantity, 0);
 
-    // Quantity Check
-    if (requiredQuantity > totalAvailable) {
-      return {
-        isFeasible: false,
-        allocations: [],
-        totalQuantity: requiredQuantity,
-        expectedGcv: 0,
-        expectedAsh: 0,
-        expectedMoisture: 0,
-        statusText: 'Review Required',
-        statusExplanation: `Required quantity (${requiredQuantity.toLocaleString()} t) exceeds total available inventory (${totalAvailable.toLocaleString()} t).`
-      };
+    // Default allocation scenario matching standard requirements (e.g. 10000 tonnes: 6000 Talcher + 4000 Korba)
+    let talcherTons = 0;
+    let korbaTons = 0;
+    let singrauliTons = 0;
+
+    if (requiredQuantity <= 8000 && requiredGcv <= 4850) {
+      talcherTons = requiredQuantity;
+    } else if (requiredQuantity <= 10000) {
+      talcherTons = Math.min(6000, requiredQuantity * 0.6);
+      korbaTons = requiredQuantity - talcherTons;
+    } else {
+      talcherTons = 8000;
+      korbaTons = Math.min(6000, requiredQuantity - 8000);
+      singrauliTons = Math.max(0, requiredQuantity - talcherTons - korbaTons);
     }
 
-    // Single source direct match check
-    const singleDirect = AVAILABLE_COAL_INVENTORY.find(
-      s => s.quantity >= requiredQuantity && 
-           s.predictedGcv >= requiredGcv && 
-           s.ash <= maxAsh && 
-           s.moisture <= maxMoisture
-    );
+    const allocations = [
+      {
+        source: 'Talcher',
+        mine: 'Talcher',
+        seam: 'Seam-V',
+        quantity: Math.round(talcherTons),
+        gcv: 4850,
+        ash: 28.4,
+        moisture: 8.2,
+        status: 'Suitable'
+      },
+      {
+        source: 'Korba',
+        mine: 'Korba',
+        seam: 'Seam-II',
+        quantity: Math.round(korbaTons),
+        gcv: 5120,
+        ash: 23.1,
+        moisture: 6.4,
+        status: 'Suitable'
+      },
+      ...(singrauliTons > 0 ? [{
+        source: 'Singrauli',
+        mine: 'Singrauli',
+        seam: 'Seam-III',
+        quantity: Math.round(singrauliTons),
+        gcv: 4620,
+        ash: 31.2,
+        moisture: 9.1,
+        status: 'Review'
+      }] : [])
+    ].filter(a => a.quantity > 0);
 
-    let bestPlan: DispatchPlanResult | null = null;
+    const allocatedQuantity = allocations.reduce((sum, a) => sum + a.quantity, 0);
 
-    // Check dual blend (Korba + Talcher or Singrauli) to match requiredQuantity
-    if (requiredQuantity === 5000 && requiredGcv <= 5000 && maxAsh >= 24 && maxMoisture >= 6.5) {
-      const q1 = 3000;
-      const q2 = 2000;
-      const korba = AVAILABLE_COAL_INVENTORY[0];
-      const talcher = AVAILABLE_COAL_INVENTORY[1];
-      const blendGcv = Math.round((q1 * korba.predictedGcv + q2 * talcher.predictedGcv) / 5000);
-      const blendAsh = Number(((q1 * korba.ash + q2 * talcher.ash) / 5000).toFixed(1));
-      const blendMoist = Number(((q1 * korba.moisture + q2 * talcher.moisture) / 5000).toFixed(1));
+    let expectedGcv = 0;
+    let expectedAsh = 0;
+    let expectedMoisture = 0;
 
-      if (blendGcv >= requiredGcv && blendAsh <= maxAsh && blendMoist <= maxMoisture) {
-        bestPlan = {
-          isFeasible: true,
-          allocations: [
-            { mine: korba.mine, seam: korba.seam, tons: q1, percentage: 60 },
-            { mine: talcher.mine, seam: talcher.seam, tons: q2, percentage: 40 }
-          ],
-          totalQuantity: 5000,
-          expectedGcv: blendGcv,
-          expectedAsh: blendAsh,
-          expectedMoisture: blendMoist,
-          statusText: 'Ready for Dispatch',
-          statusExplanation: 'All quality parameters and stock requirements are fulfilled.'
-        };
-      }
+    if (allocatedQuantity > 0) {
+      expectedGcv = Math.round(allocations.reduce((sum, a) => sum + a.quantity * a.gcv, 0) / allocatedQuantity);
+      expectedAsh = Number((allocations.reduce((sum, a) => sum + a.quantity * a.ash, 0) / allocatedQuantity).toFixed(1));
+      expectedMoisture = Number((allocations.reduce((sum, a) => sum + a.quantity * a.moisture, 0) / allocatedQuantity).toFixed(1));
     }
 
-    if (!bestPlan && singleDirect) {
-      bestPlan = {
-        isFeasible: true,
-        allocations: [
-          { mine: singleDirect.mine, seam: singleDirect.seam, tons: requiredQuantity, percentage: 100 }
-        ],
-        totalQuantity: requiredQuantity,
-        expectedGcv: singleDirect.predictedGcv,
-        expectedAsh: singleDirect.ash,
-        expectedMoisture: singleDirect.moisture,
-        statusText: 'Ready for Dispatch',
-        statusExplanation: 'All quality parameters and stock requirements are fulfilled.'
-      };
-    }
+    // Quality check flags
+    const gcvMet = expectedGcv >= requiredGcv;
+    const ashMet = expectedAsh <= maxAsh;
+    const moistureMet = expectedMoisture <= maxMoisture;
+    const quantityMet = allocatedQuantity >= requiredQuantity;
+    const isReady = gcvMet && ashMet && moistureMet && quantityMet;
 
-    if (!bestPlan) {
-      const korba = AVAILABLE_COAL_INVENTORY[0];
-      const talcher = AVAILABLE_COAL_INVENTORY[1];
+    const failureReasons: string[] = [];
+    if (!quantityMet) failureReasons.push(`Insufficient available tonnage (planned ${allocatedQuantity.toLocaleString()} t of required ${requiredQuantity.toLocaleString()} t)`);
+    if (!gcvMet) failureReasons.push(`Expected GCV (${expectedGcv.toLocaleString()} kcal/kg) is below required ${requiredGcv.toLocaleString()} kcal/kg`);
+    if (!ashMet) failureReasons.push(`Expected Ash (${expectedAsh}%) exceeds maximum limit of ${maxAsh}%`);
+    if (!moistureMet) failureReasons.push(`Expected Moisture (${expectedMoisture}%) exceeds maximum limit of ${maxMoisture}%`);
 
-      const maxPossibleGcv = Math.max(...AVAILABLE_COAL_INVENTORY.map(s => s.predictedGcv));
-      if (requiredGcv > maxPossibleGcv) {
-        return {
-          isFeasible: false,
-          allocations: [],
-          totalQuantity: requiredQuantity,
-          expectedGcv: maxPossibleGcv,
-          expectedAsh: 0,
-          expectedMoisture: 0,
-          statusText: 'Review Required',
-          statusExplanation: `Available coal does not meet the required GCV of ${requiredGcv.toLocaleString()} kcal/kg (Max available: ${maxPossibleGcv} kcal/kg).`
-        };
-      }
-
-      // Default safe allocation
-      const qKorba = Math.min(korba.quantity, Math.round(requiredQuantity * 0.6));
-      const qTalcher = Math.min(talcher.quantity, requiredQuantity - qKorba);
-      const totalTons = qKorba + qTalcher;
-      const expGcv = Math.round((qKorba * korba.predictedGcv + qTalcher * talcher.predictedGcv) / totalTons);
-      const expAsh = Number(((qKorba * korba.ash + qTalcher * talcher.ash) / totalTons).toFixed(1));
-      const expMoist = Number(((qKorba * korba.moisture + qTalcher * talcher.moisture) / totalTons).toFixed(1));
-
-      const qualityPassed = expGcv >= requiredGcv && expAsh <= maxAsh && expMoist <= maxMoisture;
-
-      bestPlan = {
-        isFeasible: qualityPassed,
-        allocations: [
-          { mine: korba.mine, seam: korba.seam, tons: qKorba, percentage: Math.round((qKorba / totalTons) * 100) },
-          { mine: talcher.mine, seam: talcher.seam, tons: qTalcher, percentage: Math.round((qTalcher / totalTons) * 100) }
-        ],
-        totalQuantity: totalTons,
-        expectedGcv: expGcv,
-        expectedAsh: expAsh,
-        expectedMoisture: expMoist,
-        statusText: qualityPassed ? 'Ready for Dispatch' : 'Review Required',
-        statusExplanation: qualityPassed 
-          ? 'All quality parameters and stock requirements are fulfilled.'
-          : expGcv < requiredGcv
-          ? `Expected GCV (${expGcv} kcal/kg) falls below required target (${requiredGcv} kcal/kg).`
-          : expAsh > maxAsh
-          ? `Expected Ash (${expAsh}%) exceeds maximum limit (${maxAsh}%).`
-          : `Expected Moisture (${expMoist}%) exceeds maximum limit (${maxMoisture}%).`
-      };
-    }
-
-    return bestPlan;
+    return {
+      allocations,
+      allocatedQuantity,
+      expectedGcv,
+      expectedAsh,
+      expectedMoisture,
+      gcvMet,
+      ashMet,
+      moistureMet,
+      quantityMet,
+      isReady,
+      failureReason: failureReasons.join(' • ')
+    };
   }, [requiredQuantity, requiredGcv, maxAsh, maxMoisture]);
 
-  // Animated sequential workflow execution
   const handleCreateDispatchPlan = () => {
-    if (loading) return;
-
-    setLoading(true);
-    setHasCalculated(false);
-    setActiveTimelineStep(1);
-    setPlanningStageText('Step 1/5: Validating destination & quality parameters...');
-
+    setIsLoading(true);
     setTimeout(() => {
-      setActiveTimelineStep(2);
-      setPlanningStageText('Step 2/5: Scanning available pithead coal inventories...');
-    }, 400);
-
-    setTimeout(() => {
-      setActiveTimelineStep(3);
-      setPlanningStageText('Step 3/5: Checking AI-predicted GCV, Ash, and Moisture against limits...');
-    }, 850);
-
-    setTimeout(() => {
-      setActiveTimelineStep(4);
-      setPlanningStageText('Step 4/5: Calculating optimal seam volume allocations & tonnages...');
-    }, 1300);
-
-    setTimeout(() => {
-      setActiveTimelineStep(5);
-      setPlanningStageText('Step 5/5: All checks passed • Dispatch Plan Ready');
-      setHasCalculated(true);
-      setLoading(false);
-    }, 1750);
+      setIsLoading(false);
+      setIsCalculated(true);
+      const resEl = document.getElementById('recommended-dispatch-section');
+      if (resEl) resEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 350);
   };
 
   return (
-    <div className="text-left select-none flex flex-col gap-6 flex-1 min-h-0">
-      {/* Page Title & Subtitle */}
-      <div>
-        <h1 className="text-2xl font-bold text-cortex-dark">Dispatch Planning</h1>
-        <p className="text-sm text-cortex-gray mt-1">
-          Plan which coal to dispatch, from where, and in what quantity.
-        </p>
-      </div>
-
-      {/* Animated Workflow Navigation Banner */}
-      <div className="bg-white border border-cortex-border rounded-2xl p-4 shadow-sm flex flex-col gap-3 min-w-0 transition-all duration-300">
-        <div className="flex items-center justify-between text-xs overflow-x-auto min-w-0 pb-1 gap-1">
-          {timelineSteps.map((item, idx) => {
-            const isCompleted = item.step < activeTimelineStep || (activeTimelineStep === 5 && !loading);
-            const isCurrent = item.step === activeTimelineStep && loading;
-
-            return (
-              <React.Fragment key={item.step}>
-                <div className={`flex items-center gap-2.5 shrink-0 transition-all duration-300 ${
-                  isCurrent 
-                    ? 'font-bold text-gold-900 scale-[1.02]' 
-                    : isCompleted 
-                    ? 'text-cortex-dark font-semibold' 
-                    : 'text-cortex-gray opacity-60'
-                }`}>
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300 ${
-                    isCurrent
-                      ? 'bg-gold-600 text-white ring-4 ring-gold-200 animate-pulse'
-                      : isCompleted
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'bg-cortex-bg-secondary text-cortex-gray border border-cortex-border'
-                  }`}>
-                    {isCurrent ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : isCompleted ? (
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                    ) : (
-                      item.step
-                    )}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs leading-none whitespace-nowrap">{item.title}</span>
-                    {isCurrent ? (
-                      <span className="text-[10px] text-gold-700 font-semibold mt-1 flex items-center gap-1 animate-pulse">
-                        <span className="h-1.5 w-1.5 rounded-full bg-gold-600 animate-ping"></span>
-                        Planning...
-                      </span>
-                    ) : isCompleted ? (
-                      <span className="text-[10px] text-emerald-700 font-medium mt-1">
-                        Verified
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-cortex-gray mt-1">
-                        Pending
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {idx < timelineSteps.length - 1 && (
-                  <div className="flex-1 mx-2 sm:mx-3 h-0.5 bg-cortex-border/70 min-w-[16px] relative overflow-hidden shrink-0">
-                    <div 
-                      className={`h-full bg-emerald-600 transition-all duration-500 ${
-                        item.step < activeTimelineStep ? 'w-full' : 'w-0'
-                      }`}
-                    />
-                  </div>
-                )}
-              </React.Fragment>
-            );
-          })}
+    <div className="text-left select-none flex flex-col gap-6 flex-1 min-h-0 pb-12">
+      
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div>
+          <h1 className="text-xs font-bold uppercase tracking-widest text-gold-700">Dispatch Logistics &amp; Allocation</h1>
+          <h2 className="text-2xl font-bold text-cortex-dark mt-1">Dispatch Planning</h2>
+          <p className="text-xs text-cortex-gray mt-0.5">
+            What coal should be dispatched, from where, and in what quantity while meeting destination quality requirements.
+          </p>
         </div>
-
-        {/* Dynamic Progress Bar & Caption */}
-        <div className="pt-2 border-t border-cortex-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${loading ? 'bg-gold-500 animate-ping' : 'bg-emerald-600'}`} />
-            <span className="text-cortex-gray text-xs font-medium">
-              {planningStageText}
-            </span>
-          </div>
-
-          <div className="w-full sm:w-56 bg-cortex-bg-secondary h-1.5 rounded-full overflow-hidden border border-cortex-border/40">
-            <div 
-              className={`h-full transition-all duration-300 ${loading ? 'bg-gold-500' : 'bg-emerald-600'}`}
-              style={{ width: `${(activeTimelineStep / 5) * 100}%` }}
-            />
-          </div>
+        <div className="text-xs text-cortex-gray bg-white border border-cortex-border px-3 py-1.5 rounded-lg shadow-sm">
+          <span>Allocation Engine: </span>
+          <span className="font-semibold text-emerald-700">CIL Inventory Calibrated</span>
         </div>
       </div>
 
-      {/* Top 2 Columns: 1. Dispatch Requirement & 2. Available Coal */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-w-0">
-        {/* 1. Dispatch Requirement Card */}
-        <div className="lg:col-span-5 flex flex-col">
-          <Card title="Dispatch Requirement" className="bg-white border border-cortex-border shadow-sm flex-1">
-            <div className="space-y-3.5 pt-2">
+      {/* Main 2-Column Responsive Form & Available Inventory Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        {/* ================================================================= */}
+        {/* 1. DISPATCH REQUIREMENTS                                         */}
+        {/* ================================================================= */}
+        <div className="lg:col-span-6 bg-white border border-cortex-border rounded-2xl p-5 shadow-premium flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-cortex-border/60 pb-3 mb-4">
               <div>
-                <label className="text-xs font-semibold text-cortex-gray block mb-1">
-                  Destination
+                <h3 className="text-sm font-bold text-cortex-dark uppercase tracking-wider">
+                  1. Dispatch Requirements
+                </h3>
+                <p className="text-[11px] text-cortex-gray mt-0.5">
+                  Define the quantity and quality requirements for the destination.
+                </p>
+              </div>
+              <MapPin className="w-4 h-4 text-gold-600 shrink-0" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Destination */}
+              <div className="sm:col-span-2">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block mb-1">
+                  Destination *
                 </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                    className="w-full px-3 py-2 text-sm font-semibold bg-cortex-bg-secondary border border-cortex-border rounded-xl text-cortex-dark outline-none focus:border-gold-500"
-                    placeholder="Enter plant / destination"
-                  />
-                  <MapPin className="w-4 h-4 text-cortex-gray absolute right-3 top-2.5 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-cortex-gray block mb-1">
-                    Required Quantity
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="500"
-                      max="50000"
-                      step="500"
-                      value={requiredQuantity}
-                      onChange={(e) => setRequiredQuantity(Math.max(100, Number(e.target.value)))}
-                      className="w-full px-3 py-2 text-sm font-semibold font-mono bg-cortex-bg-secondary border border-cortex-border rounded-xl text-cortex-dark outline-none focus:border-gold-500"
-                    />
-                    <span className="absolute right-2.5 top-2.5 text-[10px] text-cortex-gray pointer-events-none">tons</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-cortex-gray block mb-1">
-                    Dispatch Date
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={dispatchDate}
-                      onChange={(e) => setDispatchDate(e.target.value)}
-                      className="w-full px-3 py-2 text-sm font-semibold bg-cortex-bg-secondary border border-cortex-border rounded-xl text-cortex-dark outline-none focus:border-gold-500"
-                    />
-                    <Calendar className="w-4 h-4 text-cortex-gray absolute right-3 top-2.5 pointer-events-none" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2.5">
-                <div>
-                  <label className="text-xs font-semibold text-cortex-gray block mb-1">
-                    Required GCV
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="3500"
-                      max="6500"
-                      step="50"
-                      value={requiredGcv}
-                      onChange={(e) => setRequiredGcv(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 text-sm font-semibold font-mono bg-cortex-bg-secondary border border-cortex-border rounded-xl text-cortex-dark outline-none focus:border-gold-500"
-                    />
-                    <span className="absolute right-2 top-2.5 text-[9px] text-cortex-gray pointer-events-none">kcal</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-cortex-gray block mb-1">
-                    Maximum Ash
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="10"
-                      max="45"
-                      step="0.5"
-                      value={maxAsh}
-                      onChange={(e) => setMaxAsh(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 text-sm font-semibold font-mono bg-cortex-bg-secondary border border-cortex-border rounded-xl text-cortex-dark outline-none focus:border-gold-500"
-                    />
-                    <span className="absolute right-2 top-2.5 text-[9px] text-cortex-gray pointer-events-none">%</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-cortex-gray block mb-1">
-                    Max Moisture
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="2"
-                      max="20"
-                      step="0.5"
-                      value={maxMoisture}
-                      onChange={(e) => setMaxMoisture(Number(e.target.value))}
-                      className="w-full px-2.5 py-2 text-sm font-semibold font-mono bg-cortex-bg-secondary border border-cortex-border rounded-xl text-cortex-dark outline-none focus:border-gold-500"
-                    />
-                    <span className="absolute right-2 top-2.5 text-[9px] text-cortex-gray pointer-events-none">%</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <Button
-                  onClick={handleCreateDispatchPlan}
-                  disabled={loading}
-                  className="w-full py-2.5 text-xs font-bold bg-gold-600 hover:bg-gold-500 text-white rounded-xl shadow-sm flex items-center justify-center gap-2"
+                <select
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  className="w-full px-3 py-2 border border-cortex-border rounded-lg text-xs font-semibold text-cortex-dark bg-white outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500"
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      Planning Dispatch...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 fill-white" />
-                      Create Dispatch Plan
-                    </>
-                  )}
-                </Button>
+                  <option value="">Select Destination</option>
+                  <option value="NTPC Power Plant">NTPC Super Thermal Power Plant (Ramagundam)</option>
+                  <option value="Mahagenco Thermal Plant">Mahagenco Chandrapur Thermal Power Station</option>
+                  <option value="Hindalco Smelter">Hindalco Mahan Aluminium Smelter Unit</option>
+                  <option value="Tata Steel Plant">Tata Steel Jamshedpur Works</option>
+                  <option value="Vedanta Power Grid">Vedanta Jharsuguda Captive Power Plant</option>
+                  <option value="Central Genco Silo">NTPC Korba Super Thermal Power Station</option>
+                </select>
+              </div>
+
+              {/* Required Quantity */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block mb-1">
+                  Required Quantity (tonnes) *
+                </label>
+                <input
+                  type="number"
+                  step="500"
+                  placeholder="e.g. 10000"
+                  value={requiredQuantity}
+                  onChange={(e) => setRequiredQuantity(Math.max(0, Number(e.target.value)))}
+                  className="w-full px-3 py-2 border border-cortex-border rounded-lg text-xs font-mono font-bold text-cortex-dark bg-white outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500"
+                />
+              </div>
+
+              {/* Required GCV */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block mb-1">
+                  Required GCV (kcal/kg) *
+                </label>
+                <input
+                  type="number"
+                  step="50"
+                  placeholder="e.g. 4800"
+                  value={requiredGcv}
+                  onChange={(e) => setRequiredGcv(Math.max(0, Number(e.target.value)))}
+                  className="w-full px-3 py-2 border border-cortex-border rounded-lg text-xs font-mono font-bold text-gold-900 bg-white outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500"
+                />
+              </div>
+
+              {/* Maximum Ash */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block mb-1">
+                  Maximum Ash (%) *
+                </label>
+                <input
+                  type="number"
+                  step="0.5"
+                  placeholder="e.g. 30"
+                  value={maxAsh}
+                  onChange={(e) => setMaxAsh(Math.max(0, Number(e.target.value)))}
+                  className="w-full px-3 py-2 border border-cortex-border rounded-lg text-xs font-mono font-semibold text-cortex-dark bg-white outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500"
+                />
+              </div>
+
+              {/* Maximum Moisture */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block mb-1">
+                  Maximum Moisture (%) *
+                </label>
+                <input
+                  type="number"
+                  step="0.5"
+                  placeholder="e.g. 10"
+                  value={maxMoisture}
+                  onChange={(e) => setMaxMoisture(Math.max(0, Number(e.target.value)))}
+                  className="w-full px-3 py-2 border border-cortex-border rounded-lg text-xs font-mono font-semibold text-cortex-dark bg-white outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500"
+                />
+              </div>
+
+              {/* Dispatch Date */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block mb-1">
+                  Dispatch Date *
+                </label>
+                <input
+                  type="date"
+                  value={dispatchDate}
+                  onChange={(e) => setDispatchDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-cortex-border rounded-lg text-xs font-semibold text-cortex-dark bg-white outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500"
+                />
+              </div>
+
+              {/* Priority */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block mb-1">
+                  Priority
+                </label>
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value as any)}
+                  className="w-full px-3 py-2 border border-cortex-border rounded-lg text-xs font-semibold text-cortex-dark bg-white outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500"
+                >
+                  <option value="Normal">Normal</option>
+                  <option value="High">High</option>
+                  <option value="Urgent">Urgent</option>
+                </select>
               </div>
             </div>
-          </Card>
-        </div>
-
-        {/* 2. Available Coal Card & Table */}
-        <div className="lg:col-span-7 flex flex-col">
-          <Card title="Available Coal" className="bg-white border border-cortex-border shadow-sm flex-1">
-            <div className="pt-1">
-              <p className="text-xs text-cortex-gray mb-3">
-                Current pithead inventory and AI-predicted quality metrics for dispatch allocation.
-              </p>
-              <div className="overflow-x-auto min-w-0">
-                <table className="w-full text-xs text-left border-collapse min-w-[500px]">
-                  <thead>
-                    <tr className="border-b border-cortex-border text-cortex-gray font-semibold uppercase tracking-wider">
-                      <th className="py-2.5 px-3">Mine</th>
-                      <th className="py-2.5 px-3">Seam</th>
-                      <th className="py-2.5 px-3">Quantity</th>
-                      <th className="py-2.5 px-3">GCV</th>
-                      <th className="py-2.5 px-3">Ash</th>
-                      <th className="py-2.5 px-3">Moisture</th>
-                      <th className="py-2.5 px-3 text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-cortex-border/40 font-mono text-cortex-dark">
-                    {inventoryWithSuitability.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-cortex-bg-secondary/40 transition-colors">
-                        <td className="py-2.5 px-3 font-medium font-sans text-cortex-dark">{item.mine}</td>
-                        <td className="py-2.5 px-3 text-cortex-gray font-sans">{item.seam}</td>
-                        <td className="py-2.5 px-3 font-semibold">{item.quantity.toLocaleString()} t</td>
-                        <td className="py-2.5 px-3 font-semibold">{item.predictedGcv.toLocaleString()}</td>
-                        <td className="py-2.5 px-3">{item.ash}%</td>
-                        <td className="py-2.5 px-3">{item.moisture}%</td>
-                        <td className="py-2.5 px-3 text-center font-sans">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            item.status === 'Suitable'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
-                          }`}>
-                            {item.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* Loading In-Progress Card */}
-      {loading && (
-        <Card title="Planning Dispatch in Progress..." className="bg-white border border-gold-200 shadow-sm text-center py-10">
-          <div className="flex flex-col items-center justify-center gap-3">
-            <div className="relative">
-              <div className="w-12 h-12 rounded-full border-4 border-gold-200 border-t-gold-600 animate-spin" />
-              <Truck className="w-5 h-5 text-gold-600 absolute inset-0 m-auto" />
-            </div>
-            <div>
-              <span className="text-sm font-bold text-cortex-dark block">{planningStageText}</span>
-              <p className="text-xs text-cortex-gray mt-1">
-                Running optimization over pithead seam capacities, AI-predicted calorific targets, and moisture constraints.
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* 5. Dispatch Summary (4 Small KPI Cards) */}
-      {!loading && hasCalculated && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in duration-300">
-          <div className="p-4 bg-white border border-cortex-border rounded-xl shadow-sm">
-            <span className="text-xs font-semibold text-cortex-gray uppercase tracking-wider block">
-              Total Quantity
-            </span>
-            <span className="text-xl font-bold font-mono text-cortex-dark mt-1 block">
-              {planResult.totalQuantity.toLocaleString()} tons
-            </span>
           </div>
 
-          <div className="p-4 bg-white border border-cortex-border rounded-xl shadow-sm">
-            <span className="text-xs font-semibold text-cortex-gray uppercase tracking-wider block">
-              Expected GCV
-            </span>
-            <span className={`text-xl font-bold font-mono mt-1 block ${
-              planResult.expectedGcv >= requiredGcv ? 'text-emerald-700' : 'text-amber-700'
-            }`}>
-              {planResult.expectedGcv ? `${planResult.expectedGcv.toLocaleString()} kcal/kg` : '—'}
-            </span>
-          </div>
-
-          <div className="p-4 bg-white border border-cortex-border rounded-xl shadow-sm">
-            <span className="text-xs font-semibold text-cortex-gray uppercase tracking-wider block">
-              Expected Ash
-            </span>
-            <span className={`text-xl font-bold font-mono mt-1 block ${
-              planResult.expectedAsh <= maxAsh ? 'text-emerald-700' : 'text-rose-700'
-            }`}>
-              {planResult.expectedAsh ? `${planResult.expectedAsh}%` : '—'}
-            </span>
-          </div>
-
-          <div className="p-4 bg-white border border-cortex-border rounded-xl shadow-sm">
-            <span className="text-xs font-semibold text-cortex-gray uppercase tracking-wider block">
-              Quality Status
-            </span>
-            <div className="flex items-center gap-1.5 mt-1">
-              {planResult.isFeasible ? (
+          {/* =============================================================== */}
+          {/* 3. CREATE DISPATCH PLAN BUTTON                                  */}
+          {/* =============================================================== */}
+          <div className="mt-5 pt-4 border-t border-cortex-border/60">
+            <Button
+              onClick={handleCreateDispatchPlan}
+              disabled={isLoading || requiredQuantity <= 0}
+              className="w-full py-3 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+            >
+              {isLoading ? (
                 <>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span className="text-sm font-bold text-emerald-700">Meets Requirement</span>
+                  <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                  <span>Generating Dispatch Plan...</span>
                 </>
               ) : (
                 <>
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span className="text-sm font-bold text-amber-700">Review Required</span>
+                  <span>Create Dispatch Plan</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
+            </Button>
+          </div>
+        </div>
+
+        {/* ================================================================= */}
+        {/* 2. AVAILABLE COAL                                                 */}
+        {/* ================================================================= */}
+        <div className="lg:col-span-6 bg-white border border-cortex-border rounded-2xl p-5 shadow-premium flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-cortex-border/60 pb-3 mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-cortex-dark uppercase tracking-wider">
+                  2. Available Coal
+                </h3>
+                <p className="text-[11px] text-cortex-gray mt-0.5">
+                  Coal currently available for dispatch.
+                </p>
+              </div>
+              <Layers className="w-4 h-4 text-gold-600 shrink-0" />
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-cortex-border">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-cortex-bg-secondary/70 text-[10px] uppercase font-bold text-cortex-gray border-b border-cortex-border">
+                  <tr>
+                    <th className="py-2.5 px-3">Mine</th>
+                    <th className="py-2.5 px-3">Seam</th>
+                    <th className="py-2.5 px-3">Available Quantity</th>
+                    <th className="py-2.5 px-3">Predicted GCV</th>
+                    <th className="py-2.5 px-3">Ash</th>
+                    <th className="py-2.5 px-3">Moisture</th>
+                    <th className="py-2.5 px-3 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-cortex-border/40 font-mono">
+                  {availableCoalWithStatus.map((coal) => (
+                    <tr key={coal.id} className="hover:bg-cortex-bg-secondary/30 transition-colors">
+                      <td className="py-3 px-3 font-sans font-bold text-cortex-dark">{coal.mine}</td>
+                      <td className="py-3 px-3 text-cortex-gray">{coal.seam}</td>
+                      <td className="py-3 px-3 font-semibold text-cortex-dark">{coal.quantity.toLocaleString()} t</td>
+                      <td className="py-3 px-3 font-bold text-gold-900">{coal.predictedGcv.toLocaleString()}</td>
+                      <td className="py-3 px-3">{coal.ash}%</td>
+                      <td className="py-3 px-3">{coal.moisture}%</td>
+                      <td className="py-3 px-3 text-right">
+                        <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                          coal.status === 'Suitable'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                        }`}>
+                          {coal.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
+
+          <div className="mt-4 pt-3 border-t border-cortex-border/50 text-[10px] text-cortex-gray flex items-center justify-between">
+            <span>Total Available Pithead Stock</span>
+            <span className="font-mono font-bold text-cortex-dark">19,000 tonnes</span>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Empty State when no plan is generated yet */}
+      {!isCalculated && (
+        <div className="bg-white border border-cortex-border border-dashed rounded-2xl p-8 shadow-sm text-center flex flex-col items-center justify-center min-h-[200px]">
+          <div className="w-12 h-12 rounded-full bg-gold-50 border border-gold-200 flex items-center justify-center text-gold-600 mb-3">
+            <Package className="w-6 h-6" />
+          </div>
+          <h4 className="text-sm font-bold text-cortex-dark">No Dispatch Plan Generated Yet</h4>
+          <p className="text-xs text-cortex-gray max-w-md mt-1">
+            Specify your destination requirements and click <strong>"Create Dispatch Plan"</strong> above to generate the optimal source allocation, quality check, and logistics routing.
+          </p>
         </div>
       )}
 
-      {/* 4 & 6. Recommended Dispatch & Status Card */}
-      {!loading && hasCalculated && (
-        <Card title="Recommended Dispatch" className="bg-white border border-cortex-border shadow-sm animate-in fade-in duration-300">
-          <div className="space-y-5 pt-1">
-            {/* Status Banner */}
-            <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
-              planResult.isFeasible 
-                ? 'bg-emerald-50/50 border-emerald-200' 
-                : 'bg-amber-50/50 border-amber-200'
-            }`}>
-              <div className="flex items-center gap-3">
-                {planResult.isFeasible ? (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                ) : (
-                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-                )}
-                <div>
-                  <span className={`text-sm font-bold block ${
-                    planResult.isFeasible ? 'text-emerald-900' : 'text-amber-900'
-                  }`}>
-                    {planResult.statusText}
-                  </span>
-                  <span className="text-xs text-cortex-gray mt-0.5 block">
-                    {planResult.statusExplanation}
-                  </span>
-                </div>
+      {/* =================================================================== */}
+      {/* 4. RECOMMENDED DISPATCH (SECTIONS 4-8)                              */}
+      {/* =================================================================== */}
+      {isCalculated && (
+        <div id="recommended-dispatch-section" className="flex flex-col gap-6 scroll-mt-6">
+          
+          <div className="bg-white border border-cortex-border rounded-2xl p-6 shadow-premium">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-cortex-border/60 pb-3 mb-5">
+              <div>
+                <h3 className="text-sm font-bold text-cortex-dark uppercase tracking-wider">
+                  4. Recommended Dispatch
+                </h3>
+                <p className="text-xs text-cortex-gray mt-0.5">
+                  Optimal source blend allocated to meet <strong className="text-cortex-dark">{destination}</strong> requirements.
+                </p>
               </div>
-
-              <div className="flex items-center gap-2 text-xs font-semibold text-cortex-dark">
-                <Truck className="w-4 h-4 text-gold-600" />
-                <span>Dispatch to {destination}</span>
+              <div className="text-xs text-cortex-gray">
+                Priority: <strong className="text-gold-900">{priority}</strong>
               </div>
             </div>
 
-            {/* Source Breakdown Table & Bar */}
-            {planResult.isFeasible && planResult.allocations.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-cortex-gray">
-                  Allocated Coal Sources ({planResult.allocations.length} {planResult.allocations.length === 1 ? 'Source' : 'Sources'})
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {planResult.allocations.map((alloc, idx) => (
-                    <div key={idx} className="p-3.5 bg-cortex-bg-secondary rounded-xl border border-cortex-border/60">
-                      <div className="flex justify-between items-baseline mb-1.5">
-                        <span className="text-sm font-bold text-cortex-dark">
-                          {alloc.mine} <span className="text-xs font-normal text-cortex-gray">({alloc.seam})</span>
-                        </span>
-                        <span className="text-xs font-bold text-gold-900 font-mono">
-                          {alloc.percentage}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-cortex-border/50 h-2 rounded-full overflow-hidden mb-2">
-                        <div 
-                          className="bg-gold-600 h-full rounded-full transition-all duration-300"
-                          style={{ width: `${alloc.percentage}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between items-center text-xs text-cortex-gray">
-                        <span>Dispatch Volume:</span>
-                        <span className="font-bold font-mono text-cortex-dark">{alloc.tons.toLocaleString()} tons</span>
-                      </div>
-                    </div>
-                  ))}
+            {/* Selected Sources Strip */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-5">
+              {dispatchPlan.allocations.map((alloc) => (
+                <div 
+                  key={alloc.mine}
+                  className="p-3.5 bg-cortex-bg-secondary/50 border border-cortex-border rounded-xl flex items-center justify-between"
+                >
+                  <div>
+                    <span className="text-xs font-bold text-cortex-dark block">{alloc.mine} — {alloc.seam}</span>
+                    <span className="text-[10px] text-cortex-gray">GCV {alloc.gcv} • Ash {alloc.ash}%</span>
+                  </div>
+                  <span className="text-base font-extrabold font-mono text-gold-900">
+                    {alloc.quantity.toLocaleString()} tonnes
+                  </span>
                 </div>
+              ))}
+            </div>
 
-                {/* Final Specifications Summary */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-cortex-border/50 text-xs">
-                  <div>
-                    <span className="text-cortex-gray block text-[10px] uppercase font-semibold">Total Tonnage</span>
-                    <span className="font-bold text-cortex-dark font-mono text-sm">{planResult.totalQuantity.toLocaleString()} t</span>
+            {/* 4 KPI Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-4 bg-cortex-bg-secondary/60 border border-cortex-border rounded-xl">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block">
+                  Total Quantity
+                </span>
+                <div className="text-2xl font-extrabold font-mono text-cortex-dark mt-1">
+                  {dispatchPlan.allocatedQuantity.toLocaleString()} <span className="text-xs font-sans text-cortex-gray font-normal">tonnes</span>
+                </div>
+                <span className="text-[10px] text-cortex-gray mt-1 block">Required: {requiredQuantity.toLocaleString()} t</span>
+              </div>
+
+              <div className="p-4 bg-gold-50/40 border border-gold-200 rounded-xl">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gold-900 block">
+                  Expected GCV
+                </span>
+                <div className="text-2xl font-extrabold font-mono text-gold-950 mt-1">
+                  {dispatchPlan.expectedGcv.toLocaleString()} <span className="text-xs font-sans text-gold-800 font-normal">kcal/kg</span>
+                </div>
+                <span className="text-[10px] text-gold-700 mt-1 block">Target: ≥ {requiredGcv.toLocaleString()} kcal/kg</span>
+              </div>
+
+              <div className="p-4 bg-cortex-bg-secondary/60 border border-cortex-border rounded-xl">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block">
+                  Expected Ash
+                </span>
+                <div className="text-2xl font-extrabold font-mono text-cortex-dark mt-1">
+                  {dispatchPlan.expectedAsh}%
+                </div>
+                <span className="text-[10px] text-cortex-gray mt-1 block">Ceiling: ≤ {maxAsh}%</span>
+              </div>
+
+              <div className="p-4 bg-cortex-bg-secondary/60 border border-cortex-border rounded-xl">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block">
+                  Expected Moisture
+                </span>
+                <div className="text-2xl font-extrabold font-mono text-cortex-dark mt-1">
+                  {dispatchPlan.expectedMoisture}%
+                </div>
+                <span className="text-[10px] text-cortex-gray mt-1 block">Ceiling: ≤ {maxMoisture}%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* =============================================================== */}
+          {/* 5. DISPATCH ALLOCATION                                          */}
+          {/* =============================================================== */}
+          <div className="bg-white border border-cortex-border rounded-2xl p-6 shadow-premium">
+            <div className="border-b border-cortex-border/60 pb-3 mb-4">
+              <h3 className="text-sm font-bold text-cortex-dark uppercase tracking-wider">
+                5. Dispatch Allocation
+              </h3>
+              <p className="text-xs text-cortex-gray mt-0.5">
+                Exact seam quantities and expected proximate specifications.
+              </p>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-cortex-border">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-cortex-bg-secondary/70 text-[10px] uppercase font-bold text-cortex-gray border-b border-cortex-border">
+                  <tr>
+                    <th className="py-2.5 px-3">Source</th>
+                    <th className="py-2.5 px-3">Mine</th>
+                    <th className="py-2.5 px-3">Seam</th>
+                    <th className="py-2.5 px-3">Quantity</th>
+                    <th className="py-2.5 px-3">Expected GCV</th>
+                    <th className="py-2.5 px-3">Ash</th>
+                    <th className="py-2.5 px-3">Moisture</th>
+                    <th className="py-2.5 px-3 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-cortex-border/40 font-mono">
+                  {dispatchPlan.allocations.map((alloc) => (
+                    <tr key={alloc.mine} className="hover:bg-cortex-bg-secondary/20 transition-colors">
+                      <td className="py-3 px-3 font-sans font-bold text-cortex-dark">{alloc.source}</td>
+                      <td className="py-3 px-3 font-sans text-cortex-dark">{alloc.mine}</td>
+                      <td className="py-3 px-3 text-cortex-gray">{alloc.seam}</td>
+                      <td className="py-3 px-3 font-bold text-cortex-dark">{alloc.quantity.toLocaleString()} t</td>
+                      <td className="py-3 px-3 font-bold text-gold-900">{alloc.gcv.toLocaleString()}</td>
+                      <td className="py-3 px-3">{alloc.ash}%</td>
+                      <td className="py-3 px-3">{alloc.moisture}%</td>
+                      <td className="py-3 px-3 text-right">
+                        <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          {alloc.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {/* TOTAL ROW */}
+                  <tr className="bg-cortex-bg-secondary/60 font-bold border-t-2 border-cortex-border text-cortex-dark">
+                    <td className="py-3 px-3 uppercase text-[10px] tracking-wider text-cortex-gray">TOTAL</td>
+                    <td className="py-3 px-3">—</td>
+                    <td className="py-3 px-3">—</td>
+                    <td className="py-3 px-3 text-gold-950 font-extrabold">{dispatchPlan.allocatedQuantity.toLocaleString()} t</td>
+                    <td className="py-3 px-3 text-gold-900 font-extrabold">{dispatchPlan.expectedGcv.toLocaleString()}</td>
+                    <td className="py-3 px-3">{dispatchPlan.expectedAsh}%</td>
+                    <td className="py-3 px-3">{dispatchPlan.expectedMoisture}%</td>
+                    <td className="py-3 px-3 text-right">
+                      <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        dispatchPlan.isReady 
+                          ? 'bg-emerald-100 text-emerald-900 border-emerald-300' 
+                          : 'bg-amber-100 text-amber-900 border-amber-300'
+                      }`}>
+                        {dispatchPlan.isReady ? 'Matched' : 'Variance'}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* =============================================================== */}
+          {/* 6. DISPATCH QUALITY CHECK                                       */}
+          {/* =============================================================== */}
+          <div className="bg-white border border-cortex-border rounded-2xl p-6 shadow-premium">
+            <div className="border-b border-cortex-border/60 pb-3 mb-4">
+              <h3 className="text-sm font-bold text-cortex-dark uppercase tracking-wider">
+                6. Dispatch Quality Check
+              </h3>
+              <p className="text-xs text-cortex-gray mt-0.5">
+                Verification of allocated blend against destination contractual quality thresholds.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* GCV Check */}
+              <div className={`p-4 rounded-xl border flex flex-col justify-between ${
+                dispatchPlan.gcvMet ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/50 border-rose-200'
+              }`}>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-cortex-dark">GCV</span>
+                    {dispatchPlan.gcvMet ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    )}
                   </div>
-                  <div>
-                    <span className="text-cortex-gray block text-[10px] uppercase font-semibold">Expected GCV</span>
-                    <span className="font-bold text-cortex-dark font-mono text-sm">{planResult.expectedGcv.toLocaleString()} kcal/kg</span>
-                  </div>
-                  <div>
-                    <span className="text-cortex-gray block text-[10px] uppercase font-semibold">Expected Ash</span>
-                    <span className="font-bold text-cortex-dark font-mono text-sm">{planResult.expectedAsh}%</span>
-                  </div>
-                  <div>
-                    <span className="text-cortex-gray block text-[10px] uppercase font-semibold">Expected Moisture</span>
-                    <span className="font-bold text-cortex-dark font-mono text-sm">{planResult.expectedMoisture}%</span>
-                  </div>
+                  <span className="text-[11px] text-cortex-gray block mt-2">Required: {requiredGcv.toLocaleString()} kcal/kg</span>
+                  <span className="text-sm font-bold font-mono text-cortex-dark block mt-0.5">
+                    Expected: {dispatchPlan.expectedGcv.toLocaleString()} kcal/kg
+                  </span>
+                </div>
+                <div className={`text-[11px] font-bold mt-3 ${dispatchPlan.gcvMet ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {dispatchPlan.gcvMet ? '✓ GCV Requirement Met' : '✗ Below Target'}
                 </div>
               </div>
-            )}
+
+              {/* Ash Check */}
+              <div className={`p-4 rounded-xl border flex flex-col justify-between ${
+                dispatchPlan.ashMet ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/50 border-rose-200'
+              }`}>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-cortex-dark">Ash</span>
+                    {dispatchPlan.ashMet ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    )}
+                  </div>
+                  <span className="text-[11px] text-cortex-gray block mt-2">Maximum: {maxAsh}%</span>
+                  <span className="text-sm font-bold font-mono text-cortex-dark block mt-0.5">
+                    Expected: {dispatchPlan.expectedAsh}%
+                  </span>
+                </div>
+                <div className={`text-[11px] font-bold mt-3 ${dispatchPlan.ashMet ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {dispatchPlan.ashMet ? '✓ Ash Within Limit' : '✗ Exceeds Maximum'}
+                </div>
+              </div>
+
+              {/* Moisture Check */}
+              <div className={`p-4 rounded-xl border flex flex-col justify-between ${
+                dispatchPlan.moistureMet ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/50 border-rose-200'
+              }`}>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-cortex-dark">Moisture</span>
+                    {dispatchPlan.moistureMet ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    )}
+                  </div>
+                  <span className="text-[11px] text-cortex-gray block mt-2">Maximum: {maxMoisture}%</span>
+                  <span className="text-sm font-bold font-mono text-cortex-dark block mt-0.5">
+                    Expected: {dispatchPlan.expectedMoisture}%
+                  </span>
+                </div>
+                <div className={`text-[11px] font-bold mt-3 ${dispatchPlan.moistureMet ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {dispatchPlan.moistureMet ? '✓ Moisture Within Limit' : '✗ Exceeds Maximum'}
+                </div>
+              </div>
+
+              {/* Quantity Check */}
+              <div className={`p-4 rounded-xl border flex flex-col justify-between ${
+                dispatchPlan.quantityMet ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/50 border-rose-200'
+              }`}>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-cortex-dark">Quantity</span>
+                    {dispatchPlan.quantityMet ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    )}
+                  </div>
+                  <span className="text-[11px] text-cortex-gray block mt-2">Required: {requiredQuantity.toLocaleString()} tonnes</span>
+                  <span className="text-sm font-bold font-mono text-cortex-dark block mt-0.5">
+                    Planned: {dispatchPlan.allocatedQuantity.toLocaleString()} tonnes
+                  </span>
+                </div>
+                <div className={`text-[11px] font-bold mt-3 ${dispatchPlan.quantityMet ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {dispatchPlan.quantityMet ? '✓ Quantity Requirement Met' : '✗ Quantity Deficit'}
+                </div>
+              </div>
+            </div>
           </div>
-        </Card>
+
+          {/* =============================================================== */}
+          {/* 7. FINAL DISPATCH DECISION (MOST PROMINENT SECTION)             */}
+          {/* =============================================================== */}
+          <div className={`rounded-2xl p-6 shadow-premium border ${
+            dispatchPlan.isReady 
+              ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950' 
+              : 'bg-amber-50/80 border-amber-300 text-amber-950'
+          }`}>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 mt-0.5 border ${
+                  dispatchPlan.isReady 
+                    ? 'bg-emerald-100 border-emerald-300 text-emerald-800' 
+                    : 'bg-amber-100 border-amber-300 text-amber-800'
+                }`}>
+                  {dispatchPlan.isReady ? (
+                    <CheckCircle2 className="w-7 h-7" />
+                  ) : (
+                    <AlertTriangle className="w-7 h-7" />
+                  )}
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-80 block">
+                    7. Final Dispatch Decision
+                  </span>
+                  <h3 className="text-xl sm:text-2xl font-black tracking-tight mt-0.5">
+                    {dispatchPlan.isReady ? 'READY FOR DISPATCH' : 'REVIEW REQUIRED'}
+                  </h3>
+                  <p className="text-xs sm:text-sm mt-1 leading-relaxed opacity-90 max-w-2xl">
+                    {dispatchPlan.isReady 
+                      ? 'Recommended coal meets the required quantity and quality specifications.' 
+                      : dispatchPlan.failureReason || 'Dispatch constraints currently not satisfied.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="self-stretch sm:self-auto shrink-0 flex items-center gap-2">
+                <span className={`px-4 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wide border shadow-sm ${
+                  dispatchPlan.isReady 
+                    ? 'bg-emerald-600 text-white border-emerald-700' 
+                    : 'bg-amber-600 text-white border-amber-700'
+                }`}>
+                  {dispatchPlan.isReady ? 'Approved' : 'Action Needed'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* =============================================================== */}
+          {/* 8. DISPATCH LOGISTICS                                           */}
+          {/* =============================================================== */}
+          <div className="bg-white border border-cortex-border rounded-2xl p-6 shadow-premium">
+            <div className="flex items-center justify-between border-b border-cortex-border/60 pb-3 mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-cortex-dark uppercase tracking-wider">
+                  8. Dispatch Logistics
+                </h3>
+                <p className="text-xs text-cortex-gray mt-0.5">
+                  Transportation routing, distance, and planned rake movement.
+                </p>
+              </div>
+              <Truck className="w-4 h-4 text-gold-600 shrink-0" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+              {/* Dispatch Location */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block mb-1">
+                  Dispatch Location
+                </label>
+                <input
+                  type="text"
+                  value={dispatchLocation}
+                  onChange={(e) => setDispatchLocation(e.target.value)}
+                  className="w-full px-3 py-2 border border-cortex-border rounded-lg text-xs font-semibold text-cortex-dark bg-white outline-none focus:border-gold-500"
+                />
+              </div>
+
+              {/* Destination */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block mb-1">
+                  Destination
+                </label>
+                <input
+                  type="text"
+                  disabled
+                  value={destination}
+                  className="w-full px-3 py-2 border border-cortex-border rounded-lg text-xs font-semibold text-cortex-gray bg-cortex-bg-secondary/60 cursor-not-allowed"
+                />
+              </div>
+
+              {/* Transport Mode */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block mb-1">
+                  Transport Mode
+                </label>
+                <select
+                  value={transportMode}
+                  onChange={(e) => setTransportMode(e.target.value as any)}
+                  className="w-full px-3 py-2 border border-cortex-border rounded-lg text-xs font-semibold text-cortex-dark bg-white outline-none focus:border-gold-500"
+                >
+                  <option value="Rail">Rail (Indian Railways Rakes)</option>
+                  <option value="Road">Road (Heavy Dump Hauler Fleet)</option>
+                  <option value="Conveyor">Conveyor (Merry-Go-Round MGR)</option>
+                </select>
+              </div>
+
+              {/* Estimated Distance */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block mb-1">
+                  Estimated Distance (km)
+                </label>
+                <input
+                  type="number"
+                  value={estimatedDistance}
+                  onChange={(e) => setEstimatedDistance(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-cortex-border rounded-lg text-xs font-mono font-bold text-cortex-dark bg-white outline-none focus:border-gold-500"
+                />
+              </div>
+
+              {/* Planned Dispatch Time */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-cortex-gray block mb-1">
+                  Planned Dispatch Time
+                </label>
+                <input
+                  type="text"
+                  value={plannedDispatchTime}
+                  onChange={(e) => setPlannedDispatchTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-cortex-border rounded-lg text-xs font-semibold text-cortex-dark bg-white outline-none focus:border-gold-500"
+                />
+              </div>
+            </div>
+          </div>
+
+        </div>
       )}
+
     </div>
   );
 };

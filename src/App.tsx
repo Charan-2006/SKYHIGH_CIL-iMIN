@@ -6,6 +6,7 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CoalQualityEvaluation from './pages/CoalQualityEvaluation';
+import LabTesting from './pages/LabTesting';
 import Explainability from './pages/Explainability';
 import Confidence from './pages/Confidence';
 import Blend from './pages/Blend';
@@ -34,7 +35,7 @@ export const App: React.FC = () => {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="evaluation" element={<CoalQualityEvaluation />} />
             <Route path="prediction" element={<Navigate to="/evaluation" replace />} />
-            <Route path="laboratory" element={<Navigate to="/evaluation" replace />} />
+            <Route path="laboratory" element={<LabTesting />} />
             <Route path="explainability" element={<Explainability />} />
             <Route path="confidence" element={<Confidence />} />
             <Route path="blend" element={<Blend />} />
