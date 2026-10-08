@@ -50,23 +50,25 @@
   }
 }
 
-/* Custom Scrollbar for premium feel */
+/* Remove visible scrollbar track to eliminate white line on right edge */
+html, body {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 0px;
+  height: 0px;
+  background: transparent;
+  display: none;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-cortex-bg-secondary);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #E5E7EB;
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #D1D5DB;
+  background: transparent;
 }
 
 /* Premium shadows */
