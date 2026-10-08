@@ -6,6 +6,7 @@ import { laboratoryApi } from '../api/laboratory';
 import { getCoalGrade } from '../constants/mockData';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import ShapExplanationAgent from '../components/ShapExplanationAgent';
 import { 
   Sparkles, 
   MapPin, 
@@ -110,6 +111,9 @@ export const CoalQualityEvaluation: React.FC = () => {
     grade: string;
     confidence: number;
     isHighConfidence: boolean;
+    shapValues?: any[];
+    baseValue?: number;
+    narrative?: string;
   } | null>(null);
 
   // -------------------------------------------------------------------------
@@ -527,7 +531,10 @@ export const CoalQualityEvaluation: React.FC = () => {
           predictedGcv: Math.round(apiResponse.predictions.gcv),
           grade: apiResponse.grade || grade,
           confidence: conf,
-          isHighConfidence: highConf
+          isHighConfidence: highConf,
+          shapValues: apiResponse.shap_values,
+          baseValue: apiResponse.base_value || 5872,
+          narrative: apiResponse.narrative
         });
         setLastPrediction(apiResponse);
         await loadHistory();
@@ -569,7 +576,9 @@ export const CoalQualityEvaluation: React.FC = () => {
         predictedGcv: predictedGcv,
         grade,
         confidence: confidenceScore,
-        isHighConfidence
+        isHighConfidence,
+        baseValue: 5872,
+        narrative: undefined
       });
 
       setLastPrediction(fallbackResult);
@@ -1824,6 +1833,41 @@ export const CoalQualityEvaluation: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* =============================================================== */}
+          {/* SHAP PREDICTION EXPLANATION AGENT                               */}
+          {/* Diagnoses why this quality is predicted for all operational cases */}
+          {/* =============================================================== */}
+          <ShapExplanationAgent
+            sampleId={predictionResult.sampleId}
+            mineName={predictionResult.mineName}
+            predictedGcv={predictionResult.predictedGcv}
+            predictedAsh={predictionResult.predictedAsh}
+            predictedMoisture={predictionResult.predictedMoisture}
+            predictedVm={predictionResult.predictedVm}
+            predictedFc={predictionResult.predictedFc}
+            grade={predictionResult.grade}
+            confidence={predictionResult.confidence}
+            isHighConfidence={predictionResult.isHighConfidence}
+            baseValue={predictionResult.baseValue || 5872}
+            backendShapValues={predictionResult.shapValues}
+            backendNarrative={predictionResult.narrative}
+            inputParameters={{
+              seamDepth: seamDepth,
+              seamThickness: seamThickness,
+              recentRainfall: recentRainfall,
+              relativeHumidity: relativeHumidity,
+              ambientTemp: ambientTemp,
+              storageDuration: storageDuration,
+              stockpileCondition: stockpileCondition,
+              coalRank: coalRank,
+              geologicalFormation: geologicalFormation,
+              miningMethod: miningMethod,
+              opticalReflectance: sensorReflectance,
+              bulkDensity: sensorBulkDensity,
+              particleSize: sensorParticleSize
+            }}
+          />
 
           {/* =============================================================== */}
           {/* CONFIDENCE-BASED VERIFICATION DECISION CARD                     */}

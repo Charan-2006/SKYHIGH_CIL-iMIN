@@ -56,6 +56,7 @@ class PredictionResponse(BaseModel):
     model_version: str
     explanation_available: bool = True
     shap_values: Optional[List[ShapContribution]] = None
+    base_value: Optional[float] = 5872.54
     narrative: Optional[str] = None
     created_at: datetime
     status: str = "OPTIMAL"

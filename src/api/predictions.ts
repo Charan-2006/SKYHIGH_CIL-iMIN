@@ -49,6 +49,7 @@ export interface PredictionResult {
   model_version: string;
   explanation_available: boolean;
   shap_values?: ShapValue[];
+  base_value?: number;
   narrative?: string;
   created_at: string;
 }

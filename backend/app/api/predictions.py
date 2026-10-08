@@ -54,7 +54,7 @@ def get_prediction_explanation(prediction_id: str):
     return PredictionExplanationResponse(
         prediction_id=prediction_id,
         sample_id=pred.get("sample_id", ""),
-        base_value=5200.0,
+        base_value=pred.get("base_value", 5872.54),
         predicted_gcv=predicted_gcv,
         shap_contributions=shap_vals,
         top_positive_features=top_pos,

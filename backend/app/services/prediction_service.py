@@ -64,6 +64,7 @@ class PredictionService:
             "model_version": ml_result["model_version"],
             "explanation_available": ml_result["explanation_available"],
             "shap_values": ml_result["shap_data"]["shap_contributions"] if ml_result.get("shap_data") else [],
+            "base_value": ml_result["shap_data"]["base_value"] if ml_result.get("shap_data") else 5872.54,
             "narrative": ml_result["shap_data"]["narrative"] if ml_result.get("shap_data") else "",
             "created_at": datetime.now(timezone.utc)
         }
